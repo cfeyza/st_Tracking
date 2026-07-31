@@ -16,6 +16,7 @@ from app.models.user import User
 from app.schemas.announcement import AnnouncementCreate, AnnouncementOut
 from app.schemas.classroom import ClassroomCreate, ClassroomOut, RosterImportRequest
 from app.schemas.grade import GradeCreate, GradeOut
+from app.schemas.pagination import Page
 from app.schemas.teacher import StudentListItem, TeacherDashboardOut, TeacherProfileOut
 from app.services.roster import RosterEntryInput, import_roster
 
@@ -53,7 +54,17 @@ async def create_classroom(
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> ClassroomOut:
-    classroom = Classroom(teacher_id=teacher.id, name=payload.name.strip())
+    name = payload.name.strip()
+    existing = await db.execute(
+        select(Classroom).where(Classroom.teacher_id == teacher.id, func.lower(Classroom.name) == name.lower())
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A classroom named '{name}' already exists. Pick it from the existing classrooms list instead.",
+        )
+
+    classroom = Classroom(teacher_id=teacher.id, name=name)
     db.add(classroom)
     await db.flush()
 
@@ -67,22 +78,31 @@ async def create_classroom(
     return ClassroomOut(id=classroom.id, name=classroom.name, student_count=len(students), created_at=classroom.created_at)
 
 
-@router.get("/classrooms", response_model=list[ClassroomOut])
+@router.get("/classrooms", response_model=Page[ClassroomOut])
 async def list_classrooms(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
-) -> list[ClassroomOut]:
+) -> Page[ClassroomOut]:
+    total = await db.scalar(
+        select(func.count()).select_from(Classroom).where(Classroom.teacher_id == teacher.id)
+    )
+
     result = await db.execute(
         select(Classroom, func.count(classroom_students.c.student_id))
         .outerjoin(classroom_students, classroom_students.c.classroom_id == Classroom.id)
         .where(Classroom.teacher_id == teacher.id)
         .group_by(Classroom.id)
         .order_by(Classroom.name)
+        .limit(page_size)
+        .offset((page - 1) * page_size)
     )
-    return [
+    items = [
         ClassroomOut(id=classroom.id, name=classroom.name, student_count=count, created_at=classroom.created_at)
         for classroom, count in result.all()
     ]
+    return Page.build(items=items, total=total or 0, page=page, page_size=page_size)
 
 
 async def _get_owned_classroom(db: AsyncSession, teacher_id: int, classroom_id: int) -> Classroom:
@@ -90,6 +110,17 @@ async def _get_owned_classroom(db: AsyncSession, teacher_id: int, classroom_id: 
     if classroom is None or classroom.teacher_id != teacher_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classroom not found")
     return classroom
+
+
+@router.delete("/classrooms/{classroom_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_classroom(
+    classroom_id: int,
+    teacher: TeacherProfile = Depends(get_current_teacher),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    classroom = await _get_owned_classroom(db, teacher.id, classroom_id)
+    await db.delete(classroom)
+    await db.commit()
 
 
 @router.post("/classrooms/{classroom_id}/roster", response_model=list[StudentListItem], status_code=status.HTTP_201_CREATED)
@@ -164,14 +195,16 @@ SortField = Literal["classroom", "name", "surname", "school_id"]
 SortOrder = Literal["asc", "desc"]
 
 
-@router.get("/students", response_model=list[StudentListItem])
+@router.get("/students", response_model=Page[StudentListItem])
 async def list_students(
     classroom_id: int | None = Query(default=None),
     sort_by: SortField = Query(default="surname"),
     order: SortOrder = Query(default="asc"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
-) -> list[StudentListItem]:
+) -> Page[StudentListItem]:
     classrooms_agg = (
         select(
             classroom_students.c.student_id.label("student_id"),
@@ -197,6 +230,8 @@ async def list_students(
             )
         )
 
+    total = await db.scalar(select(func.count()).select_from(query.subquery()))
+
     sort_column = {
         "classroom": classrooms_agg.c.classroom_names,
         "name": StudentProfile.name,
@@ -204,6 +239,7 @@ async def list_students(
         "school_id": StudentProfile.school_id,
     }[sort_by]
     query = query.order_by(sort_column.desc() if order == "desc" else sort_column.asc())
+    query = query.limit(page_size).offset((page - 1) * page_size)
 
     result = await db.execute(query)
     items = []
@@ -219,7 +255,41 @@ async def list_students(
                 is_registered=student.user_id is not None,
             )
         )
-    return items
+    return Page.build(items=items, total=total or 0, page=page, page_size=page_size)
+
+
+@router.delete("/students/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_student(
+    student_id: int,
+    teacher: TeacherProfile = Depends(get_current_teacher),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Unlinks a student from this teacher entirely: removed from every
+    classroom this teacher owns, and from this teacher's roster. The
+    StudentProfile row itself (and any other teacher/parent links) is left
+    intact, and past grades stay in history.
+    """
+    link = await db.execute(
+        select(teacher_students).where(
+            teacher_students.c.teacher_id == teacher.id, teacher_students.c.student_id == student_id
+        )
+    )
+    if link.first() is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    owned_classroom_ids = select(Classroom.id).where(Classroom.teacher_id == teacher.id)
+    await db.execute(
+        classroom_students.delete().where(
+            classroom_students.c.student_id == student_id,
+            classroom_students.c.classroom_id.in_(owned_classroom_ids),
+        )
+    )
+    await db.execute(
+        teacher_students.delete().where(
+            teacher_students.c.teacher_id == teacher.id, teacher_students.c.student_id == student_id
+        )
+    )
+    await db.commit()
 
 
 @router.post("/announcements", response_model=AnnouncementOut, status_code=status.HTTP_201_CREATED)

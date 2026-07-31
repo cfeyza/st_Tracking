@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/classroom.dart';
+import '../../models/paginated.dart';
 import '../../models/teacher.dart';
 import '../../services/api_client.dart';
 import '../../services/teacher_service.dart';
@@ -27,15 +28,13 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
   int? _classroomId;
   String sortBy = 'surname';
   String order = 'asc';
+  int _page = 1;
   List<ClassroomOut> _classrooms = [];
-  late Future<List<StudentListItem>> _future;
+  late Future<Paginated<StudentListItem>> _future;
 
   @override
   void initState() {
     super.initState();
-
-    print(widget.initialClassroomId);
-    print(widget.initialClassroomName);
     _classroomId = widget.initialClassroomId;
     _loadClassrooms();
     _load();
@@ -43,15 +42,13 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
 
   Future<void> _loadClassrooms() async {
     try {
-      final classrooms = await TeacherService.listClassrooms();
-      if (mounted) setState(() => _classrooms = classrooms);
+      final classrooms = await TeacherService.listAllClassrooms();
+      if (!mounted) return;
       setState(() {
-      _classrooms = classrooms;
-
-      if (_classroomId != null &&
-          !_classrooms.any((c) => c.id == _classroomId)) {
-        _classroomId = null;
-      }
+        _classrooms = classrooms;
+        if (_classroomId != null && !_classrooms.any((c) => c.id == _classroomId)) {
+          _classroomId = null;
+        }
       });
     } on ApiException {
       // Filter dropdown just stays empty; the list itself still loads.
@@ -59,19 +56,61 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
   }
 
   void _load() {
-    _future = TeacherService.listStudents(classroomId: _classroomId, sortBy: sortBy, order: order);
+    _future = TeacherService.listStudents(
+      classroomId: _classroomId,
+      sortBy: sortBy,
+      order: order,
+      page: _page,
+    );
   }
 
   void _reload() => setState(_load);
 
+  void _reloadFromFilterChange() {
+    _page = 1;
+    setState(_load);
+  }
+
+  void _goToPage(int page) {
+    setState(() {
+      _page = page;
+      _load();
+    });
+  }
+
+  Future<void> _confirmDelete(StudentListItem student) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove student?'),
+        content: Text(
+          '${student.name} ${student.surname} will be removed from all of your classrooms and your roster. '
+          'Their record and grade history are kept, and other teachers or parents linked to them are unaffected.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Remove')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await TeacherService.deleteStudent(student.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Removed ${student.name} ${student.surname}.')),
+      );
+      if (_page > 1) _page = 1;
+      _reload();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-
-    debugPrint("Selected classroom: $_classroomId");
-    for (final c in _classrooms) {
-    debugPrint("id=${c.id}, name=${c.name}");
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.initialClassroomName == null ? 'My students' : 'My students — ${widget.initialClassroomName}'),
@@ -96,7 +135,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                   ],
                   onChanged: (value) {
                     _classroomId = value;
-                    _reload();
+                    _reloadFromFilterChange();
                   },
                 ),
                 DropdownButton<String>(
@@ -107,7 +146,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                   ],
                   onChanged: (value) {
                     sortBy = value!;
-                    _reload();
+                    _reloadFromFilterChange();
                   },
                 ),
                 IconButton(
@@ -115,7 +154,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                   icon: Icon(order == 'asc' ? Icons.arrow_upward : Icons.arrow_downward),
                   onPressed: () {
                     order = order == 'asc' ? 'desc' : 'asc';
-                    _reload();
+                    _reloadFromFilterChange();
                   },
                 ),
               ],
@@ -123,7 +162,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
           ),
           const Divider(height: 1),
           Expanded(
-            child: FutureBuilder<List<StudentListItem>>(
+            child: FutureBuilder<Paginated<StudentListItem>>(
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
@@ -132,39 +171,84 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                 if (snapshot.hasError) {
                   return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
                 }
-                final students = snapshot.data!;
+                final result = snapshot.data!;
+                final students = result.items;
                 if (students.isEmpty) {
                   return const Center(child: Text('No students found.'));
                 }
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Surname')),
-                      DataColumn(label: Text('School ID')),
-                      DataColumn(label: Text('Classroom(s)')),
-                      DataColumn(label: Text('Status')),
-                    ],
-                    rows: [
-                      for (final s in students)
-                        DataRow(cells: [
-                          DataCell(Text(s.name)),
-                          DataCell(Text(s.surname)),
-                          DataCell(Text(s.schoolId)),
-                          DataCell(Text(s.classrooms.join(', '))),
-                          DataCell(
-                            Chip(
-                              label: Text(s.isRegistered ? 'Registered' : 'Pending'),
-                              backgroundColor: s.isRegistered ? Colors.green.shade100 : Colors.orange.shade100,
-                            ),
-                          ),
-                        ]),
-                    ],
-                  ),
+                return Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('Name')),
+                            DataColumn(label: Text('Surname')),
+                            DataColumn(label: Text('School ID')),
+                            DataColumn(label: Text('Classroom(s)')),
+                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text('')),
+                          ],
+                          rows: [
+                            for (final s in students)
+                              DataRow(cells: [
+                                DataCell(Text(s.name)),
+                                DataCell(Text(s.surname)),
+                                DataCell(Text(s.schoolId)),
+                                DataCell(Text(s.classrooms.join(', '))),
+                                DataCell(
+                                  Chip(
+                                    label: Text(s.isRegistered ? 'Registered' : 'Pending'),
+                                    backgroundColor: s.isRegistered ? Colors.green.shade100 : Colors.orange.shade100,
+                                  ),
+                                ),
+                                DataCell(
+                                  IconButton(
+                                    tooltip: 'Remove student',
+                                    icon: const Icon(Icons.delete_outline),
+                                    onPressed: () => _confirmDelete(s),
+                                  ),
+                                ),
+                              ]),
+                          ],
+                        ),
+                      ),
+                    ),
+                    _PaginationBar(page: result.page, totalPages: result.totalPages, onPageChange: _goToPage),
+                  ],
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaginationBar extends StatelessWidget {
+  final int page;
+  final int totalPages;
+  final ValueChanged<int> onPageChange;
+
+  const _PaginationBar({required this.page, required this.totalPages, required this.onPageChange});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: page > 1 ? () => onPageChange(page - 1) : null,
+          ),
+          Text('Page $page of $totalPages'),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: page < totalPages ? () => onPageChange(page + 1) : null,
           ),
         ],
       ),

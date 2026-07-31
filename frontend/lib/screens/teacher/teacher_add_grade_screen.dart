@@ -24,8 +24,8 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
   void initState() {
     super.initState();
     _future = Future.wait([
-      TeacherService.listStudents(),
-      TeacherService.listClassrooms(),
+      TeacherService.listAllStudents(),
+      TeacherService.listAllClassrooms(),
     ]).then((r) => (r[0] as List<StudentListItem>, r[1] as List<ClassroomOut>));
   }
 

@@ -38,7 +38,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   Future<void> _openAddAnnouncementDialog() async {
     List<ClassroomOut> classrooms;
     try {
-      classrooms = await TeacherService.listClassrooms();
+      classrooms = await TeacherService.listAllClassrooms();
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -166,7 +166,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       child: _CountCircle(
                         label: 'Classrooms',
                         count: dashboard.classroomCount,
-                        onTap: () => Navigator.of(context).pushNamed('/teacher/classrooms'),
+                        onTap: () {
+                          Navigator.of(context)
+                            .pushNamed('/teacher/classrooms')
+                            .then((_) => _refresh());
+                        },
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -174,7 +178,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       child: _CountCircle(
                         label: 'Students',
                         count: dashboard.studentCount,
-                        onTap: () => Navigator.of(context).pushNamed('/teacher/students'),
+                        onTap: () {
+                          Navigator.of(context)
+                            .pushNamed('/teacher/students')
+                            .then((_) => _refresh());
+                        },
                       ),
                     ),
                   ],

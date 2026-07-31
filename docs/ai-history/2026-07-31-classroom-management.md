@@ -28,12 +28,12 @@ Both have confirm dialogs before the irreversible action.
 
 ## Files changed
 
-- backend/app/routers/teacher.py
-- backend/app/schemas/pagination.py
-- frontend/lib/models/paginated.dart
-- frontend/lib/screens/teacher/teacher_add_classroom_screen.dart
-- frontend/lib/screens/teacher/teacher_add_grade_screen.dart
-- frontend/lib/screens/teacher/teacher_classrooms_screen.dart
-- frontend/lib/screens/teacher/teacher_home_screen.dart
-- frontend/lib/screens/teacher/teacher_students_screen.dart
-- frontend/lib/services/teacher_service.dart
+M       backend/app/routers/teacher.py
+D       backend/app/schemas/pagination.py
+D       frontend/lib/models/paginated.dart
+M       frontend/lib/screens/teacher/teacher_add_classroom_screen.dart
+M       frontend/lib/screens/teacher/teacher_add_grade_screen.dart
+M       frontend/lib/screens/teacher/teacher_classrooms_screen.dart
+M       frontend/lib/screens/teacher/teacher_home_screen.dart
+M       frontend/lib/screens/teacher/teacher_students_screen.dart
+M       frontend/lib/services/teacher_service.dart

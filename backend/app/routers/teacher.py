@@ -132,9 +132,10 @@ async def add_to_roster(
 ) -> list[StudentListItem]:
     """Add students to a classroom by name/surname/school_id — manual entry.
     The teacher never needs to separately place these students into the
-    right classroom; the roster import does that in one step. Reuses an
-    existing student record (matched on school_id) if this teacher already
-    knows this student from another classroom.
+    right classroom; the roster import does that in one step. Each row must
+    be a genuinely new student — a school_id that already belongs to a
+    student this teacher knows, or to a different registered account, is
+    rejected (see import_roster).
     """
     classroom = await _get_owned_classroom(db, teacher.id, classroom_id)
     entries = [RosterEntryInput(name=s.name, surname=s.surname, school_id=s.school_id) for s in payload.students]

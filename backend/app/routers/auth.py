@@ -43,6 +43,19 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
             detail="This email is already registered. Please log in instead.",
         )
 
+    if payload.role == Role.STUDENT:
+        existing_school_id = await db.execute(
+            select(StudentProfile).where(
+                StudentProfile.school_id == payload.school_id.strip(),
+                StudentProfile.user_id.is_not(None),
+            )
+        )
+        if existing_school_id.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This school ID is already registered to another account.",
+            )
+
     user = User(
         email=payload.email,
         password_hash=hash_password(payload.password),
@@ -62,7 +75,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
                 user_id=user.id,
                 name=payload.name,
                 surname=payload.surname,
-                school_id=payload.school_id,
+                school_id=payload.school_id.strip(),
                 student_code=code,
             )
         )

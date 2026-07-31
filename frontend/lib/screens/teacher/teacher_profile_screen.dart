@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/teacher.dart';
 import '../../services/api_client.dart';
@@ -47,7 +48,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       child: Icon(Icons.person, size: 56),
                     ),
                     const SizedBox(height: 24),
-                    _ProfileField(label: 'Teacher code', value: teacher.teacherCode),
+                    _ProfileField(label: 'Teacher code', value: teacher.teacherCode, copyable: true),
                     _ProfileField(label: 'Name', value: teacher.name),
                     _ProfileField(label: 'Surname', value: teacher.surname),
                     _ProfileField(label: 'Email', value: teacher.email),
@@ -65,18 +66,38 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 class _ProfileField extends StatelessWidget {
   final String label;
   final String value;
+  final bool copyable;
 
-  const _ProfileField({required this.label, required this.value});
+  const _ProfileField({required this.label, required this.value, this.copyable = false});
+
+  void _copy(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label copied to clipboard')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final valueRow = Row(
+      children: [
+        Text(value, style: Theme.of(context).textTheme.titleMedium),
+        if (copyable) ...[
+          const SizedBox(width: 6),
+          Icon(Icons.copy, size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
+        ],
+      ],
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
+          if (copyable)
+            InkWell(onTap: () => _copy(context), child: valueRow)
+          else
+            valueRow,
         ],
       ),
     );

@@ -36,36 +36,55 @@ async def import_roster(
     classroom: Classroom,
     entries: list[RosterEntryInput],
 ) -> list[StudentProfile]:
-    """Adds each roster row to the classroom, creating a placeholder
-    StudentProfile (no user account yet) unless one already exists for this
-    teacher with the same school_id, in which case it's reused and just
-    linked to the additional classroom.
+    """Adds each roster row to the classroom as a brand new placeholder
+    StudentProfile (no user account yet).
+
+    A school_id that already belongs to a student this teacher knows about,
+    or to a different, already-registered student account, is always
+    rejected with 409 — adding a "new" student with an already-existing
+    school_id is never legitimate through this manual-entry roster path.
     """
     result_profiles: list[StudentProfile] = []
 
     for entry in entries:
+        school_id = entry.school_id.strip()
+
         existing = await db.execute(
             select(StudentProfile)
             .join(teacher_students, teacher_students.c.student_id == StudentProfile.id)
-            .where(teacher_students.c.teacher_id == teacher.id, StudentProfile.school_id == entry.school_id)
+            .where(teacher_students.c.teacher_id == teacher.id, StudentProfile.school_id == school_id)
         )
-        student = existing.scalars().first()
-
-        if student is None:
-            student = StudentProfile(
-                user_id=None,
-                name=entry.name.strip(),
-                surname=entry.surname.strip(),
-                school_id=entry.school_id.strip(),
-                student_code=await _generate_student_code(db),
+        if existing.scalars().first() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A student with school ID '{school_id}' already exists in your roster.",
             )
-            db.add(student)
-            await db.flush()
-            await db.execute(teacher_students.insert().values(teacher_id=teacher.id, student_id=student.id))
-        elif student.user_id is None:
-            # Keep placeholder rows in sync with the latest import.
-            student.name = entry.name.strip()
-            student.surname = entry.surname.strip()
+
+        claimed = await db.execute(
+            select(StudentProfile).where(
+                StudentProfile.school_id == school_id,
+                StudentProfile.user_id.is_not(None),
+            )
+        )
+        if claimed.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"School ID '{school_id}' already belongs to a registered student account. "
+                    "Ask them to add your teacher code instead of importing them manually."
+                ),
+            )
+
+        student = StudentProfile(
+            user_id=None,
+            name=entry.name.strip(),
+            surname=entry.surname.strip(),
+            school_id=school_id,
+            student_code=await _generate_student_code(db),
+        )
+        db.add(student)
+        await db.flush()
+        await db.execute(teacher_students.insert().values(teacher_id=teacher.id, student_id=student.id))
 
         await db.execute(
             pg_insert(classroom_students)

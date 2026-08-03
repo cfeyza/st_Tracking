@@ -41,7 +41,7 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete classroom?'),
         content: Text(
-          "This removes '${classroom.name}' and its roster links. Students themselves are not deleted.",
+          "This removes '${classroom.name}'. Students who are in that classroom will also be removed from your student list; their records aren't deleted.",
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),

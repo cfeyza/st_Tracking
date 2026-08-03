@@ -180,38 +180,40 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                   children: [
                     Expanded(
                       child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(label: Text('Name')),
-                            DataColumn(label: Text('Surname')),
-                            DataColumn(label: Text('School ID')),
-                            DataColumn(label: Text('Classroom(s)')),
-                            DataColumn(label: Text('Status')),
-                            DataColumn(label: Text('')),
-                          ],
-                          rows: [
-                            for (final s in students)
-                              DataRow(cells: [
-                                DataCell(Text(s.name)),
-                                DataCell(Text(s.surname)),
-                                DataCell(Text(s.schoolId)),
-                                DataCell(Text(s.classrooms.join(', '))),
-                                DataCell(
-                                  Chip(
-                                    label: Text(s.isRegistered ? 'Registered' : 'Pending'),
-                                    backgroundColor: s.isRegistered ? Colors.green.shade100 : Colors.orange.shade100,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(label: Text('Name')),
+                              DataColumn(label: Text('Surname')),
+                              DataColumn(label: Text('School ID')),
+                              DataColumn(label: Text('Classroom(s)')),
+                              DataColumn(label: Text('Status')),
+                              DataColumn(label: Text('')),
+                            ],
+                            rows: [
+                              for (final s in students)
+                                DataRow(cells: [
+                                  DataCell(Text(s.name)),
+                                  DataCell(Text(s.surname)),
+                                  DataCell(Text(s.schoolId)),
+                                  DataCell(Text(s.classrooms.join(', '))),
+                                  DataCell(
+                                    Chip(
+                                      label: Text(s.isRegistered ? 'Registered' : 'Pending'),
+                                      backgroundColor: s.isRegistered ? Colors.green.shade100 : Colors.orange.shade100,
+                                    ),
                                   ),
-                                ),
-                                DataCell(
-                                  IconButton(
-                                    tooltip: 'Remove student',
-                                    icon: const Icon(Icons.delete_outline),
-                                    onPressed: () => _confirmDelete(s),
+                                  DataCell(
+                                    IconButton(
+                                      tooltip: 'Remove student',
+                                      icon: const Icon(Icons.delete_outline),
+                                      onPressed: () => _confirmDelete(s),
+                                    ),
                                   ),
-                                ),
-                              ]),
-                          ],
+                                ]),
+                            ],
+                          ),
                         ),
                       ),
                     ),

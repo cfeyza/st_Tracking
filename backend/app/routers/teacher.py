@@ -118,8 +118,40 @@ async def delete_classroom(
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> None:
+    """Deletes the classroom and its roster links. Any student left with no
+    other classroom under this teacher is also unlinked from the teacher's
+    roster (teacher_students) — same as delete_student, just automatic. The
+    StudentProfile row, grade history, and other teachers'/parents' links
+    stay intact.
+    """
     classroom = await _get_owned_classroom(db, teacher.id, classroom_id)
+
+    student_ids = (
+        await db.execute(
+            select(classroom_students.c.student_id).where(classroom_students.c.classroom_id == classroom_id)
+        )
+    ).scalars().all()
+
     await db.delete(classroom)
+    await db.flush()
+
+    if student_ids:
+        still_enrolled = (
+            await db.execute(
+                select(classroom_students.c.student_id)
+                .join(Classroom, Classroom.id == classroom_students.c.classroom_id)
+                .where(Classroom.teacher_id == teacher.id, classroom_students.c.student_id.in_(student_ids))
+            )
+        ).scalars().all()
+        orphaned_ids = set(student_ids) - set(still_enrolled)
+        if orphaned_ids:
+            await db.execute(
+                teacher_students.delete().where(
+                    teacher_students.c.teacher_id == teacher.id,
+                    teacher_students.c.student_id.in_(orphaned_ids),
+                )
+            )
+
     await db.commit()
 
 

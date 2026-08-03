@@ -1,70 +1,76 @@
 import 'package:flutter/material.dart';
 
 import '../../models/classroom.dart';
+import '../../models/grade.dart';
 import '../../models/paginated.dart';
 import '../../models/teacher.dart';
 import '../../services/api_client.dart';
 import '../../services/teacher_service.dart';
 
 const _sortOptions = {
+  'date': 'Date',
+  'student': 'Student',
+  'subject': 'Subject',
+  'value': 'Grade',
   'classroom': 'Classroom',
-  'name': 'Name',
-  'surname': 'Surname',
-  'school_id': 'School ID',
 };
 
+class TeacherGradesScreen extends StatefulWidget {
+  const TeacherGradesScreen({super.key, this.initialStudentId, this.initialStudentName});
 
-class TeacherStudentsScreen extends StatefulWidget {
-  const TeacherStudentsScreen({super.key, this.initialClassroomId, this.initialClassroomName});
-
-  final int? initialClassroomId;
-  final String? initialClassroomName;
+  final int? initialStudentId;
+  final String? initialStudentName;
 
   @override
-  State<TeacherStudentsScreen> createState() => _TeacherStudentsScreenState();
+  State<TeacherGradesScreen> createState() => _TeacherGradesScreenState();
 }
 
-class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
+class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
+  int? _studentId;
   int? _classroomId;
-  String sortBy = 'surname';
-  String order = 'asc';
+  String sortBy = 'date';
+  String order = 'desc';
   int _page = 1;
+  List<StudentListItem> _students = [];
   List<ClassroomOut> _classrooms = [];
-  late Future<Paginated<StudentListItem>> _future;
+  late Future<Paginated<Grade>> _future;
 
   @override
   void initState() {
     super.initState();
-    _classroomId = widget.initialClassroomId;
-    _loadClassrooms();
+    _studentId = widget.initialStudentId;
+    _loadFilterOptions();
     _load();
   }
 
-  Future<void> _loadClassrooms() async {
+  Future<void> _loadFilterOptions() async {
     try {
-      final classrooms = await TeacherService.listAllClassrooms();
+      final results = await Future.wait([
+        TeacherService.listAllStudents(),
+        TeacherService.listAllClassrooms(),
+      ]);
       if (!mounted) return;
       setState(() {
-        _classrooms = classrooms;
-        if (_classroomId != null && !_classrooms.any((c) => c.id == _classroomId)) {
-          _classroomId = null;
+        _students = results[0] as List<StudentListItem>;
+        _classrooms = results[1] as List<ClassroomOut>;
+        if (_studentId != null && !_students.any((s) => s.id == _studentId)) {
+          _studentId = null;
         }
       });
     } on ApiException {
-      // Filter dropdown just stays empty; the list itself still loads.
+      // Filter dropdowns just stay empty; the list itself still loads.
     }
   }
 
   void _load() {
-    _future = TeacherService.listStudents(
+    _future = TeacherService.listGrades(
+      studentId: _studentId,
       classroomId: _classroomId,
       sortBy: sortBy,
       order: order,
       page: _page,
     );
   }
-
-  void _reload() => setState(_load);
 
   void _reloadFromFilterChange() {
     _page = 1;
@@ -78,42 +84,21 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
     });
   }
 
-  Future<void> _confirmDelete(StudentListItem student) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove student?'),
-        content: Text(
-          '${student.name} ${student.surname} will be removed from all of your classrooms and your roster. '
-          'Their record and grade history are kept, and other teachers or parents linked to them are unaffected.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Remove')),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    try {
-      await TeacherService.deleteStudent(student.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Removed ${student.name} ${student.surname}.')),
-      );
-      if (_page > 1) _page = 1;
-      _reload();
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+  String? get _selectedStudentLabel {
+    if (_studentId == null) return null;
+    for (final s in _students) {
+      if (s.id == _studentId) return '${s.name} ${s.surname}';
     }
+    if (_studentId == widget.initialStudentId) return widget.initialStudentName;
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final studentName = _selectedStudentLabel;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.initialClassroomName == null ? 'My students' : 'My students — ${widget.initialClassroomName}'),
+        title: Text(studentName == null ? 'Grades' : 'Grades — $studentName'),
       ),
       body: Column(
         children: [
@@ -125,9 +110,20 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 DropdownButton<int?>(
-                  value: _classrooms.any((c) => c.id == _classroomId)
-                      ? _classroomId
-                      : null,
+                  value: _students.any((s) => s.id == _studentId) ? _studentId : null,
+                  hint: const Text('Filter: all students'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('All students')),
+                    for (final s in _students)
+                      DropdownMenuItem(value: s.id, child: Text('${s.name} ${s.surname}')),
+                  ],
+                  onChanged: (value) {
+                    _studentId = value;
+                    _reloadFromFilterChange();
+                  },
+                ),
+                DropdownButton<int?>(
+                  value: _classrooms.any((c) => c.id == _classroomId) ? _classroomId : null,
                   hint: const Text('Filter: all classrooms'),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('All classrooms')),
@@ -162,7 +158,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
           ),
           const Divider(height: 1),
           Expanded(
-            child: FutureBuilder<Paginated<StudentListItem>>(
+            child: FutureBuilder<Paginated<Grade>>(
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
@@ -172,9 +168,9 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                   return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
                 }
                 final result = snapshot.data!;
-                final students = result.items;
-                if (students.isEmpty) {
-                  return const Center(child: Text('No students found.'));
+                final grades = result.items;
+                if (grades.isEmpty) {
+                  return const Center(child: Text('No grades found.'));
                 }
                 return Column(
                   children: [
@@ -183,43 +179,22 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
-                            showCheckboxColumn: false,
                             columns: const [
-                              DataColumn(label: Text('Name')),
-                              DataColumn(label: Text('Surname')),
-                              DataColumn(label: Text('School ID')),
-                              DataColumn(label: Text('Classroom(s)')),
-                              DataColumn(label: Text('Status')),
-                              DataColumn(label: Text('')),
+                              DataColumn(label: Text('Student')),
+                              DataColumn(label: Text('Subject')),
+                              DataColumn(label: Text('Grade')),
+                              DataColumn(label: Text('Classroom')),
+                              DataColumn(label: Text('Date')),
                             ],
                             rows: [
-                              for (final s in students)
-                                DataRow(
-                                  onSelectChanged: (_) => Navigator.of(context).pushNamed(
-                                    '/teacher/grades',
-                                    arguments: {'studentId': s.id, 'studentName': '${s.name} ${s.surname}'},
-                                  ),
-                                  cells: [
-                                    DataCell(Text(s.name)),
-                                    DataCell(Text(s.surname)),
-                                    DataCell(Text(s.schoolId)),
-                                    DataCell(Text(s.classrooms.join(', '))),
-                                    DataCell(
-                                      Chip(
-                                        label: Text(s.isRegistered ? 'Registered' : 'Pending'),
-                                        backgroundColor:
-                                            s.isRegistered ? Colors.green.shade100 : Colors.orange.shade100,
-                                      ),
-                                    ),
-                                    DataCell(
-                                      IconButton(
-                                        tooltip: 'Remove student',
-                                        icon: const Icon(Icons.delete_outline),
-                                        onPressed: () => _confirmDelete(s),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              for (final g in grades)
+                                DataRow(cells: [
+                                  DataCell(Text(g.studentName ?? '-')),
+                                  DataCell(Text(g.subject)),
+                                  DataCell(Text(g.value)),
+                                  DataCell(Text(g.classroomName ?? '-')),
+                                  DataCell(Text(g.createdAt.toLocal().toString().split(' ').first)),
+                                ]),
                             ],
                           ),
                         ),

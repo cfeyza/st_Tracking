@@ -164,10 +164,12 @@ async def add_to_roster(
 ) -> list[StudentListItem]:
     """Add students to a classroom by name/surname/school_id — manual entry.
     The teacher never needs to separately place these students into the
-    right classroom; the roster import does that in one step. Each row must
-    be a genuinely new student — a school_id that already belongs to a
-    student this teacher knows, or to a different registered account, is
-    rejected (see import_roster).
+    right classroom; the roster import does that in one step. Each row
+    becomes its own placeholder student, even if a registered account
+    already exists with the same school_id elsewhere — the app can't verify
+    that account actually belongs to this teacher's class, so it never links
+    automatically (see import_roster). Only a school_id already on this
+    teacher's own roster is rejected.
     """
     classroom = await _get_owned_classroom(db, teacher.id, classroom_id)
     entries = [RosterEntryInput(name=s.name, surname=s.surname, school_id=s.school_id) for s in payload.students]
@@ -417,24 +419,47 @@ async def add_grade(
     )
 
 
-@router.get("/grades", response_model=list[GradeOut])
+GradeSortField = Literal["student", "subject", "value", "classroom", "date"]
+
+
+@router.get("/grades", response_model=Page[GradeOut])
 async def list_grades(
     student_id: int | None = Query(default=None),
+    classroom_id: int | None = Query(default=None),
+    sort_by: GradeSortField = Query(default="date"),
+    order: SortOrder = Query(default="desc"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
-) -> list[GradeOut]:
+) -> Page[GradeOut]:
     query = (
         select(Grade)
+        .join(StudentProfile, StudentProfile.id == Grade.student_id)
+        .outerjoin(Classroom, Classroom.id == Grade.classroom_id)
         .options(selectinload(Grade.classroom), selectinload(Grade.student))
         .where(Grade.teacher_id == teacher.id)
-        .order_by(Grade.created_at.desc())
     )
     if student_id is not None:
         query = query.where(Grade.student_id == student_id)
+    if classroom_id is not None:
+        query = query.where(Grade.classroom_id == classroom_id)
+
+    total = await db.scalar(select(func.count()).select_from(query.subquery()))
+
+    sort_columns = {
+        "student": (StudentProfile.surname, StudentProfile.name),
+        "subject": (Grade.subject,),
+        "value": (Grade.value,),
+        "classroom": (Classroom.name,),
+        "date": (Grade.created_at,),
+    }[sort_by]
+    query = query.order_by(*(c.desc() if order == "desc" else c.asc() for c in sort_columns))
+    query = query.limit(page_size).offset((page - 1) * page_size)
 
     result = await db.execute(query)
-    grades = result.scalars().all()
-    return [
+    grades = result.scalars().unique().all()
+    items = [
         GradeOut(
             id=g.id,
             subject=g.subject,
@@ -446,3 +471,4 @@ async def list_grades(
         )
         for g in grades
     ]
+    return Page.build(items=items, total=total or 0, page=page, page_size=page_size)

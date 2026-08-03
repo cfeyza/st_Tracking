@@ -143,6 +143,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             label: 'Add grades',
             onTap: () => Navigator.of(context).pushNamed('/teacher/add-grade'),
           ),
+          DrawerAction(
+            icon: Icons.list_alt,
+            label: 'Grades',
+            onTap: () => Navigator.of(context).pushNamed('/teacher/grades'),
+          ),
         ],
       ),
       body: RefreshIndicator(

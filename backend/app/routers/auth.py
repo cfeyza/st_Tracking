@@ -37,11 +37,28 @@ async def _unique_code(db: AsyncSession, model, column_name: str, prefix: str) -
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)) -> RegisterResponse:
     existing = await db.execute(select(User).where(User.email == payload.email))
-    if existing.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This email is already registered. Please log in instead.",
+    existing_user = existing.scalar_one_or_none()
+    if existing_user is not None:
+        if existing_user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This email is already registered. Please log in instead.",
+            )
+
+        token_result = await db.execute(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == existing_user.id)
         )
+        existing_token = token_result.scalar_one_or_none()
+        if existing_token is not None and existing_token.expires_at >= datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This email is already registered. Please check your inbox for the verification link.",
+            )
+
+        # Unverified user with an expired (or missing) token: the old
+        # registration is stale, so clear it out and let them register fresh.
+        await db.delete(existing_user)
+        await db.flush()
 
     if payload.role == Role.STUDENT:
         existing_school_id = await db.execute(
@@ -102,6 +119,8 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)) -> Verify
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or already used verification link")
 
     if verification.expires_at < datetime.now(timezone.utc):
+        await db.delete(verification)
+        await db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This verification link has expired")
 
     user_result = await db.execute(select(User).where(User.id == verification.user_id))

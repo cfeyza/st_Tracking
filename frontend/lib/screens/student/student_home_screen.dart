@@ -36,7 +36,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           DrawerAction(
             icon: Icons.qr_code,
             label: 'Add teacher code',
-            onTap: () => Navigator.of(context).pushNamed('/student/add-teacher-code'),
+            onTap: () async {
+              await Navigator.of(context).pushNamed('/student/add-teacher-code');
+              _refresh();
+            },
           ),
           DrawerAction(
             icon: Icons.grade_outlined,

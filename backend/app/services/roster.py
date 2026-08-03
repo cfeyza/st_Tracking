@@ -39,15 +39,25 @@ async def import_roster(
     """Adds each roster row to the classroom as a brand new placeholder
     StudentProfile (no user account yet).
 
-    A school_id that already belongs to a student this teacher knows about,
-    or to a different, already-registered student account, is always
-    rejected with 409 — adding a "new" student with an already-existing
-    school_id is never legitimate through this manual-entry roster path.
+    This is allowed even if the school_id already belongs to a registered
+    student account elsewhere: a matching name and school_id is not proof
+    that the registered account actually belongs to this teacher's class —
+    across many schools, teachers, and students, that collision is expected
+    and cannot be resolved automatically. The placeholder and the registered
+    account stay separate, independent rows until the student proves the
+    relationship by redeeming this teacher's code (see
+    find_and_link_teacher_code), which is the only thing that merges them.
+
+    A school_id this teacher already has on their own roster is rejected
+    with 409 — that part is safe to check automatically since it only looks
+    at this teacher's own existing roster.
     """
     result_profiles: list[StudentProfile] = []
 
     for entry in entries:
         school_id = entry.school_id.strip()
+        name = entry.name.strip()
+        surname = entry.surname.strip()
 
         existing = await db.execute(
             select(StudentProfile)
@@ -60,25 +70,10 @@ async def import_roster(
                 detail=f"A student with school ID '{school_id}' already exists in your roster.",
             )
 
-        claimed = await db.execute(
-            select(StudentProfile).where(
-                StudentProfile.school_id == school_id,
-                StudentProfile.user_id.is_not(None),
-            )
-        )
-        if claimed.scalar_one_or_none() is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=(
-                    f"School ID '{school_id}' already belongs to a registered student account. "
-                    "Ask them to add your teacher code instead of importing them manually."
-                ),
-            )
-
         student = StudentProfile(
             user_id=None,
-            name=entry.name.strip(),
-            surname=entry.surname.strip(),
+            name=name,
+            surname=surname,
             school_id=school_id,
             student_code=await _generate_student_code(db),
         )

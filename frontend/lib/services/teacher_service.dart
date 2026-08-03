@@ -90,10 +90,25 @@ class TeacherService {
     return Announcement.fromJson(json as Map<String, dynamic>);
   }
 
-  static Future<List<Grade>> listGrades({int? studentId}) async {
-    final path = studentId == null ? '/teacher/grades' : '/teacher/grades?student_id=$studentId';
-    final json = await ApiClient.get(path);
-    return (json as List).map((e) => Grade.fromJson(e as Map<String, dynamic>)).toList();
+  static Future<Paginated<Grade>> listGrades({
+    int? studentId,
+    int? classroomId,
+    String sortBy = 'date',
+    String order = 'desc',
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final params = <String, String>{
+      'sort_by': sortBy,
+      'order': order,
+      'page': page.toString(),
+      'page_size': pageSize.toString(),
+    };
+    if (studentId != null) params['student_id'] = studentId.toString();
+    if (classroomId != null) params['classroom_id'] = classroomId.toString();
+    final query = Uri(queryParameters: params).query;
+    final json = await ApiClient.get('/teacher/grades?$query');
+    return Paginated.fromJson(json as Map<String, dynamic>, Grade.fromJson);
   }
 
   static Future<Grade> addGrade({

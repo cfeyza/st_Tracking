@@ -36,7 +36,10 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
           DrawerAction(
             icon: Icons.qr_code,
             label: 'Add student code',
-            onTap: () => Navigator.of(context).pushNamed('/parent/add-student-code'),
+            onTap: () async {
+              await Navigator.of(context).pushNamed('/parent/add-student-code');
+              _refresh();
+            },
           ),
           DrawerAction(
             icon: Icons.people_outline,

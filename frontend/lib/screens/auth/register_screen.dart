@@ -39,6 +39,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           duration: Duration(seconds: 6),
         ),
       );
+      _formKey.currentState!.reset();
+      _nameController.clear();
+      _surnameController.clear();
+      _emailController.clear();
+      _passwordController.clear();
+      _schoolIdController.clear();
+      setState(() => _role = 'student');
       Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
     } on ApiException catch (e) {
       if (!mounted) return;

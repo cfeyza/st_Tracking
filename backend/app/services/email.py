@@ -25,9 +25,10 @@ def send_verification_email(to_email: str, name: str, token: str) -> None:
         "If you did not create this account, you can ignore this email."
     )
 
+    print(f"[VERIFICATION EMAIL] To: {to_email}\nSubject: {subject}\n\n{body}\n")
+
     if not settings.SMTP_HOST:
-        logger.info("SMTP not configured; printing verification email instead.\nTo: %s\n%s", to_email, body)
-        print(f"[DEV EMAIL] To: {to_email}\nSubject: {subject}\n\n{body}\n")
+        logger.info("SMTP not configured; verification email was only printed to the console.")
         return
 
     message = EmailMessage()
@@ -36,9 +37,14 @@ def send_verification_email(to_email: str, name: str, token: str) -> None:
     message["Subject"] = subject
     message.set_content(body)
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-        if settings.SMTP_USE_TLS:
-            server.starttls()
-        if settings.SMTP_USERNAME:
-            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-        server.send_message(message)
+    try:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            if settings.SMTP_USE_TLS:
+                server.starttls()
+            if settings.SMTP_USERNAME:
+                server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+            server.send_message(message)
+        logger.info("Verification email sent to %s", to_email)
+    except Exception:
+        logger.exception("Failed to send verification email to %s", to_email)
+        raise

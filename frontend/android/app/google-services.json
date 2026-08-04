@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "131484739716",
+    "project_id": "sttracking-1bcac",
+    "storage_bucket": "sttracking-1bcac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:131484739716:android:8f52f53896d675177cfad1",
+        "android_client_info": {
+          "package_name": "com.studenttracking.student_tracking_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQvzQMlmSmuwt5ipLFtYbJ5dgCBPOMUg8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -11,6 +11,7 @@ import 'screens/student/student_grades_screen.dart';
 import 'screens/student/student_home_screen.dart';
 import 'screens/student/student_profile_screen.dart';
 import 'screens/teacher/teacher_add_classroom_screen.dart';
+import 'screens/teacher/teacher_add_grade_options_screen.dart';
 import 'screens/teacher/teacher_add_grade_screen.dart';
 import 'screens/teacher/teacher_classrooms_screen.dart';
 import 'screens/teacher/teacher_grades_screen.dart';
@@ -61,6 +62,8 @@ class StudentTrackingApp extends StatelessWidget {
             initialClassroomName: args?['classroomName'] as String?,
           ),
         );
+      case '/teacher/add-grade-options':
+        return MaterialPageRoute(builder: (_) => const TeacherAddGradeOptionsScreen());
       case '/teacher/add-grade':
         return MaterialPageRoute(builder: (_) => const TeacherAddGradeScreen());
       case '/teacher/grades':

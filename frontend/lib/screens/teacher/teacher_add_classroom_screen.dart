@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/classroom.dart';
@@ -22,6 +23,7 @@ class _TeacherAddClassroomScreenState extends State<TeacherAddClassroomScreen> {
   int? _selectedClassroomId;
   bool _loadingClassrooms = true;
   bool _loading = false;
+  bool _importingPdf = false;
 
   @override
   void initState() {
@@ -100,6 +102,67 @@ class _TeacherAddClassroomScreenState extends State<TeacherAddClassroomScreen> {
     }
   }
 
+  Future<void> _importPdf() async {
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    final file = picked?.files.single;
+    if (file == null || file.bytes == null) return;
+
+    setState(() => _importingPdf = true);
+    try {
+      final result = await TeacherService.importClassroomsPdf(file.bytes!, file.name);
+      if (!mounted) return;
+      await _showImportSummary(result);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _importingPdf = false);
+    }
+  }
+
+  Future<void> _showImportSummary(PdfImportResult result) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import summary'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (result.classrooms.isEmpty)
+                const Text('No classrooms could be read from this PDF.')
+              else
+                for (final c in result.classrooms)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      '${c.classroomName} (${c.createdClassroom ? 'new' : 'existing'}): '
+                      '${c.studentsAdded} student${c.studentsAdded == 1 ? '' : 's'} added'
+                      '${c.skipped.isEmpty ? '' : ', ${c.skipped.length} skipped (already in your roster)'}',
+                    ),
+                  ),
+              if (result.errors.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Issues:', style: Theme.of(context).textTheme.titleSmall),
+                for (final e in result.errors) Text('• $e'),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -146,11 +209,21 @@ class _TeacherAddClassroomScreenState extends State<TeacherAddClassroomScreen> {
             ),
             const SizedBox(height: 12),
             RosterEditor(controller: _rosterController),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Or import one or more classrooms straight from an e-Okul class-list PDF — '
+              'the classroom and section are read from the file, so the fields above aren\'t used for this.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('Import from PDF (coming soon)'),
+              onPressed: _importingPdf ? null : _importPdf,
+              icon: _importingPdf
+                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.picture_as_pdf_outlined),
+              label: Text(_importingPdf ? 'Importing…' : 'Import from PDF'),
             ),
             const SizedBox(height: 24),
             FilledButton(

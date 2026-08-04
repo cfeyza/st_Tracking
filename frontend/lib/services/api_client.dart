@@ -57,4 +57,19 @@ class ApiClient {
     final response = await http.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth));
     return _decode(response);
   }
+
+  static Future<dynamic> postMultipart(
+    String path, {
+    required String fieldName,
+    required List<int> bytes,
+    required String filename,
+    bool auth = true,
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$apiBaseUrl$path'));
+    request.headers.addAll(_headers(auth: auth)..remove('Content-Type'));
+    request.files.add(http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    return _decode(response);
+  }
 }

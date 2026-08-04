@@ -18,7 +18,7 @@ class ParentStudentListItem {
   final int id;
   final String name;
   final String surname;
-  final String schoolId;
+  final int schoolId;
 
   ParentStudentListItem({
     required this.id,
@@ -32,7 +32,7 @@ class ParentStudentListItem {
       id: json['id'] as int,
       name: json['name'] as String,
       surname: json['surname'] as String,
-      schoolId: json['school_id'] as String,
+      schoolId: json['school_id'] as int,
     );
   }
 }

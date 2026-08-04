@@ -9,7 +9,7 @@ class AuthService {
     required String surname,
     required String email,
     required String password,
-    String? schoolId,
+    int? schoolId,
   }) async {
     await ApiClient.post(
       '/auth/register',

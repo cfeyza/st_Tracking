@@ -42,7 +42,7 @@ class StudentListItem {
   final int id;
   final String name;
   final String surname;
-  final String schoolId;
+  final int schoolId;
   final String studentCode;
   final List<String> classrooms;
   final bool isRegistered;
@@ -62,7 +62,7 @@ class StudentListItem {
       id: json['id'] as int,
       name: json['name'] as String,
       surname: json['surname'] as String,
-      schoolId: json['school_id'] as String,
+      schoolId: json['school_id'] as int,
       studentCode: json['student_code'] as String,
       classrooms: (json['classrooms'] as List).cast<String>(),
       isRegistered: json['is_registered'] as bool,

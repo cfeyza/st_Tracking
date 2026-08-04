@@ -30,7 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         surname: _surnameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        schoolId: _role == 'student' ? _schoolIdController.text.trim() : null,
+        schoolId: _role == 'student' ? int.parse(_schoolIdController.text.trim()) : null,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,9 +99,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         labelText: 'School ID',
                         helperText: 'Your teacher uses this to match you to their class roster',
                       ),
+                      keyboardType: TextInputType.number,
                       validator: (v) {
                         if (_role != 'student') return null;
-                        return (v == null || v.trim().isEmpty) ? 'School ID is required' : null;
+                        final trimmed = v?.trim() ?? '';
+                        if (trimmed.isEmpty) return 'School ID is required';
+                        if (int.tryParse(trimmed) == null) return 'School ID must be a number';
+                        return null;
                       },
                     ),
                   ],

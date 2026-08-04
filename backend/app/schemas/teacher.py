@@ -18,7 +18,7 @@ class StudentListItem(BaseModel):
     id: int
     name: str
     surname: str
-    school_id: str
+    school_id: int
     student_code: str
     classrooms: list[str]
     is_registered: bool

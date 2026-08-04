@@ -15,4 +15,4 @@ class ParentStudentListItem(BaseModel):
     id: int
     name: str
     surname: str
-    school_id: str
+    school_id: int

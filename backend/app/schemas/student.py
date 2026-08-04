@@ -6,7 +6,7 @@ class StudentProfileOut(BaseModel):
     student_code: str
     name: str
     surname: str
-    school_id: str
+    school_id: int
     email: EmailStr
 
 

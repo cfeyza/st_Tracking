@@ -14,10 +14,17 @@ from app.models.student import StudentProfile
 from app.models.teacher import TeacherProfile, teacher_students
 from app.models.user import User
 from app.schemas.announcement import AnnouncementCreate, AnnouncementOut
-from app.schemas.classroom import ClassroomCreate, ClassroomOut, RosterImportRequest
+from app.schemas.classroom import (
+    ClassroomCreate,
+    ClassroomOut,
+    PdfImportClassroomResult,
+    PdfImportResult,
+    RosterImportRequest,
+)
 from app.schemas.grade import GradeCreate, GradeOut
 from app.schemas.pagination import Page
 from app.schemas.teacher import StudentListItem, TeacherDashboardOut, TeacherProfileOut
+from app.services.pdf_roster import parse_pdf
 from app.services.roster import RosterEntryInput, import_roster
 
 router = APIRouter(prefix="/teacher", tags=["teacher"])
@@ -190,21 +197,99 @@ async def add_to_roster(
     ]
 
 
-@router.post("/classrooms/{classroom_id}/roster/pdf", status_code=status.HTTP_501_NOT_IMPLEMENTED)
-async def import_roster_pdf(
-    classroom_id: int,
+async def _find_duplicate_school_ids(db: AsyncSession, teacher_id: int, school_ids: list[int]) -> set[int]:
+    if not school_ids:
+        return set()
+    result = await db.execute(
+        select(StudentProfile.school_id)
+        .join(teacher_students, teacher_students.c.student_id == StudentProfile.id)
+        .where(teacher_students.c.teacher_id == teacher_id, StudentProfile.school_id.in_(school_ids))
+    )
+    return set(result.scalars().all())
+
+
+@router.post("/classrooms/import/pdf", response_model=PdfImportResult, status_code=status.HTTP_200_OK)
+async def import_classrooms_pdf(
     file: UploadFile,
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
-) -> None:
-    """Placeholder for PDF roster import. Not implemented yet — use
-    POST /teacher/classrooms/{classroom_id}/roster for manual entry.
+) -> PdfImportResult:
+    """Parses an e-Okul style class-list PDF (see app/services/pdf_roster.py)
+    and bulk-creates/updates one classroom per detected page title, reusing
+    import_roster for the actual student creation. A page that can't be read
+    (no title found, no table found, OCR unavailable) is reported in
+    `errors` without affecting the other pages. A school_id already on this
+    teacher's roster — whether from before this upload or from an earlier
+    page in the same PDF — is skipped rather than rejected outright, since
+    one bad row shouldn't cost the rest of a multi-page scan.
     """
-    await _get_owned_classroom(db, teacher.id, classroom_id)
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="PDF roster import isn't implemented yet. Please use manual roster entry for now.",
-    )
+    filename = file.filename or ""
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF file.")
+
+    file_bytes = await file.read()
+    try:
+        pages = parse_pdf(file_bytes)
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this file as a PDF.") from exc
+
+    classroom_results: dict[int, PdfImportClassroomResult] = {}
+    errors: list[str] = []
+    seen_school_ids: set[int] = set()
+
+    for page in pages:
+        if page.error:
+            errors.append(f"Page {page.page_number}: {page.error}")
+            continue
+        if page.classroom_name is None:
+            errors.append(f"Page {page.page_number}: could not detect a classroom title.")
+            continue
+
+        existing = await db.execute(
+            select(Classroom).where(
+                Classroom.teacher_id == teacher.id, func.lower(Classroom.name) == page.classroom_name.lower()
+            )
+        )
+        classroom = existing.scalar_one_or_none()
+        created_classroom = classroom is None
+        if classroom is None:
+            classroom = Classroom(teacher_id=teacher.id, name=page.classroom_name)
+            db.add(classroom)
+            await db.flush()
+
+        page_school_ids = [entry.school_id for entry in page.entries]
+        duplicate_ids = await _find_duplicate_school_ids(db, teacher.id, page_school_ids)
+
+        skipped: list[str] = []
+        clean_entries = []
+        for entry in page.entries:
+            school_id = entry.school_id
+            if school_id in duplicate_ids or school_id in seen_school_ids:
+                skipped.append(f"{school_id} ({entry.name} {entry.surname}): already in your roster")
+                continue
+            seen_school_ids.add(school_id)
+            clean_entries.append(entry)
+
+        students = await import_roster(db, teacher, classroom, clean_entries) if clean_entries else []
+
+        if classroom.id in classroom_results:
+            existing_result = classroom_results[classroom.id]
+            existing_result.students_added += len(students)
+            existing_result.skipped.extend(skipped)
+        else:
+            classroom_results[classroom.id] = PdfImportClassroomResult(
+                classroom_id=classroom.id,
+                classroom_name=classroom.name,
+                created_classroom=created_classroom,
+                students_added=len(students),
+                skipped=skipped,
+            )
+
+        for warning in page.warnings:
+            errors.append(f"Page {page.page_number}: {warning}")
+
+    await db.commit()
+    return PdfImportResult(classrooms=list(classroom_results.values()), errors=errors)
 
 
 @router.delete("/classrooms/{classroom_id}/students/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -233,7 +318,7 @@ SortOrder = Literal["asc", "desc"]
 @router.get("/students", response_model=Page[StudentListItem])
 async def list_students(
     classroom_id: int | None = Query(default=None),
-    sort_by: SortField = Query(default="surname"),
+    sort_by: SortField = Query(default="classroom"),
     order: SortOrder = Query(default="asc"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
@@ -267,13 +352,13 @@ async def list_students(
 
     total = await db.scalar(select(func.count()).select_from(query.subquery()))
 
-    sort_column = {
-        "classroom": classrooms_agg.c.classroom_names,
-        "name": StudentProfile.name,
-        "surname": StudentProfile.surname,
-        "school_id": StudentProfile.school_id,
+    sort_columns = {
+        "classroom": (classrooms_agg.c.classroom_names, StudentProfile.school_id),
+        "name": (StudentProfile.name,),
+        "surname": (StudentProfile.surname,),
+        "school_id": (StudentProfile.school_id,),
     }[sort_by]
-    query = query.order_by(sort_column.desc() if order == "desc" else sort_column.asc())
+    query = query.order_by(*(c.desc() if order == "desc" else c.asc() for c in sort_columns))
     query = query.limit(page_size).offset((page - 1) * page_size)
 
     result = await db.execute(query)

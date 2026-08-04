@@ -26,7 +26,7 @@ class TeacherStudentsScreen extends StatefulWidget {
 
 class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
   int? _classroomId;
-  String sortBy = 'surname';
+  String sortBy = 'classroom';
   String order = 'asc';
   int _page = 1;
   List<ClassroomOut> _classrooms = [];
@@ -202,7 +202,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                                   cells: [
                                     DataCell(Text(s.name)),
                                     DataCell(Text(s.surname)),
-                                    DataCell(Text(s.schoolId)),
+                                    DataCell(Text(s.schoolId.toString())),
                                     DataCell(Text(s.classrooms.join(', '))),
                                     DataCell(
                                       Chip(

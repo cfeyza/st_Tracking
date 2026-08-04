@@ -18,7 +18,7 @@ from app.models.teacher import TeacherProfile, teacher_students
 class RosterEntryInput:
     name: str
     surname: str
-    school_id: str
+    school_id: int
 
 
 async def _generate_student_code(db: AsyncSession) -> str:
@@ -55,7 +55,7 @@ async def import_roster(
     result_profiles: list[StudentProfile] = []
 
     for entry in entries:
-        school_id = entry.school_id.strip()
+        school_id = entry.school_id
         name = entry.name.strip()
         surname = entry.surname.strip()
 

@@ -6,14 +6,21 @@ from pydantic import BaseModel, field_validator
 class RosterStudentIn(BaseModel):
     name: str
     surname: str
-    school_id: str
+    school_id: int
 
-    @field_validator("name", "surname", "school_id")
+    @field_validator("name", "surname")
     @classmethod
     def not_blank(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("must not be blank")
         return value.strip()
+
+    @field_validator("school_id")
+    @classmethod
+    def positive(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("must be a positive number")
+        return value
 
 
 class ClassroomCreate(BaseModel):
@@ -39,3 +46,16 @@ class ClassroomBrief(BaseModel):
 
 class RosterImportRequest(BaseModel):
     students: list[RosterStudentIn]
+
+
+class PdfImportClassroomResult(BaseModel):
+    classroom_id: int
+    classroom_name: str
+    created_classroom: bool
+    students_added: int
+    skipped: list[str] = []
+
+
+class PdfImportResult(BaseModel):
+    classrooms: list[PdfImportClassroomResult]
+    errors: list[str] = []

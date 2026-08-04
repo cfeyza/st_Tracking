@@ -45,13 +45,23 @@ class TeacherService {
     return (json as List).map((e) => StudentListItem.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  static Future<PdfImportResult> importClassroomsPdf(List<int> bytes, String filename) async {
+    final json = await ApiClient.postMultipart(
+      '/teacher/classrooms/import/pdf',
+      fieldName: 'file',
+      bytes: bytes,
+      filename: filename,
+    );
+    return PdfImportResult.fromJson(json as Map<String, dynamic>);
+  }
+
   static Future<void> removeStudentFromClassroom(int classroomId, int studentId) async {
     await ApiClient.delete('/teacher/classrooms/$classroomId/students/$studentId');
   }
 
   static Future<Paginated<StudentListItem>> listStudents({
     int? classroomId,
-    String sortBy = 'surname',
+    String sortBy = 'classroom',
     String order = 'asc',
     int page = 1,
     int pageSize = 20,

@@ -9,7 +9,7 @@ class RegisterRequest(BaseModel):
     surname: str
     email: EmailStr
     password: str
-    school_id: str | None = None
+    school_id: int | None = None
 
     @field_validator("name", "surname")
     @classmethod
@@ -27,7 +27,7 @@ class RegisterRequest(BaseModel):
 
     @model_validator(mode="after")
     def school_id_required_for_students(self) -> "RegisterRequest":
-        if self.role == Role.STUDENT and not (self.school_id and self.school_id.strip()):
+        if self.role == Role.STUDENT and not (self.school_id and self.school_id > 0):
             raise ValueError("school_id is required for students")
         return self
 

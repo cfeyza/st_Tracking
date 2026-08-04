@@ -13,9 +13,10 @@ class TeacherAddGradeScreen extends StatefulWidget {
 }
 
 class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
-  late Future<(List<StudentListItem>, List<ClassroomOut>)> _future;
-  int? _studentId;
+  late Future<List<ClassroomOut>> _classroomsFuture;
+  Future<List<StudentListItem>>? _studentsFuture;
   int? _classroomId;
+  int? _studentId;
   final _subjectController = TextEditingController();
   final _valueController = TextEditingController();
   bool _submitting = false;
@@ -23,16 +24,24 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
   @override
   void initState() {
     super.initState();
-    _future = Future.wait([
-      TeacherService.listAllStudents(),
-      TeacherService.listAllClassrooms(),
-    ]).then((r) => (r[0] as List<StudentListItem>, r[1] as List<ClassroomOut>));
+    _classroomsFuture = TeacherService.listAllClassrooms();
+  }
+
+  void _onClassroomChanged(int? classroomId) {
+    setState(() {
+      _classroomId = classroomId;
+      _studentId = null;
+      _studentsFuture = classroomId == null
+          ? null
+          : TeacherService.listStudents(classroomId: classroomId, pageSize: 100).then((p) => p.items);
+    });
   }
 
   Future<void> _submit() async {
-    if (_studentId == null || _subjectController.text.trim().isEmpty || _valueController.text.trim().isEmpty) {
+    if (_classroomId == null || _studentId == null || _subjectController.text.trim().isEmpty ||
+        _valueController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick a student and fill in subject and grade.')),
+        const SnackBar(content: Text('Pick a classroom and student, and fill in subject and grade.')),
       );
       return;
     }
@@ -60,8 +69,8 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Add grades')),
-      body: FutureBuilder<(List<StudentListItem>, List<ClassroomOut>)>(
-        future: _future,
+      body: FutureBuilder<List<ClassroomOut>>(
+        future: _classroomsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
@@ -69,31 +78,60 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
           }
-          final (students, classrooms) = snapshot.data!;
+          final classrooms = snapshot.data!;
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 DropdownButtonFormField<int>(
-                  initialValue: _studentId,
-                  decoration: const InputDecoration(labelText: 'Student'),
-                  items: [
-                    for (final s in students)
-                      DropdownMenuItem(value: s.id, child: Text('${s.name} ${s.surname} (${s.schoolId})')),
-                  ],
-                  onChanged: (v) => setState(() => _studentId = v),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<int?>(
                   initialValue: _classroomId,
-                  decoration: const InputDecoration(labelText: 'Classroom (optional)'),
+                  decoration: const InputDecoration(labelText: 'Classroom'),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('None')),
                     for (final c in classrooms) DropdownMenuItem(value: c.id, child: Text(c.name)),
                   ],
-                  onChanged: (v) => setState(() => _classroomId = v),
+                  onChanged: _onClassroomChanged,
                 ),
+                const SizedBox(height: 16),
+                if (_classroomId == null)
+                  const InputDecorator(
+                    decoration: InputDecoration(labelText: 'Student'),
+                    child: Text('Select a classroom first'),
+                  )
+                else
+                  FutureBuilder<List<StudentListItem>>(
+                    future: _studentsFuture,
+                    builder: (context, studentSnapshot) {
+                      if (studentSnapshot.connectionState != ConnectionState.done) {
+                        return const InputDecorator(
+                          decoration: InputDecoration(labelText: 'Student'),
+                          child: SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
+                      if (studentSnapshot.hasError) {
+                        return InputDecorator(
+                          decoration: const InputDecoration(labelText: 'Student'),
+                          child: Text(
+                            '${(studentSnapshot.error as ApiException?)?.message ?? studentSnapshot.error}',
+                          ),
+                        );
+                      }
+                      final students = studentSnapshot.data!;
+                      return DropdownButtonFormField<int>(
+                        initialValue: _studentId,
+                        decoration: const InputDecoration(labelText: 'Student'),
+                        items: [
+                          for (final s in students)
+                            DropdownMenuItem(value: s.id, child: Text('${s.name} ${s.surname} (${s.schoolId})')),
+                        ],
+                        onChanged: (v) => setState(() => _studentId = v),
+                      );
+                    },
+                  ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _subjectController,

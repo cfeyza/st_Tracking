@@ -63,7 +63,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     if payload.role == Role.STUDENT:
         existing_school_id = await db.execute(
             select(StudentProfile).where(
-                StudentProfile.school_id == payload.school_id.strip(),
+                StudentProfile.school_id == payload.school_id,
                 StudentProfile.user_id.is_not(None),
             )
         )
@@ -92,7 +92,7 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
                 user_id=user.id,
                 name=payload.name,
                 surname=payload.surname,
-                school_id=payload.school_id.strip(),
+                school_id=payload.school_id,
                 student_code=code,
             )
         )

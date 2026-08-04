@@ -30,11 +30,18 @@ class RosterEditorController {
     for (final row in rows) {
       final name = row.nameController.text.trim();
       final surname = row.surnameController.text.trim();
-      final schoolId = row.schoolIdController.text.trim();
-      if (name.isEmpty && surname.isEmpty && schoolId.isEmpty) continue;
-      if (name.isEmpty || surname.isEmpty || schoolId.isEmpty) {
+      final schoolIdText = row.schoolIdController.text.trim();
+      if (name.isEmpty && surname.isEmpty && schoolIdText.isEmpty) continue;
+      if (name.isEmpty || surname.isEmpty || schoolIdText.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Fill in name, surname, and school ID for every roster row (or remove it).')),
+        );
+        return null;
+      }
+      final schoolId = int.tryParse(schoolIdText);
+      if (schoolId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('School ID must be a number.')),
         );
         return null;
       }
@@ -92,6 +99,7 @@ class _RosterEditorState extends State<RosterEditor> {
                   child: TextField(
                     controller: _rows[i].schoolIdController,
                     decoration: const InputDecoration(labelText: 'School ID', isDense: true),
+                    keyboardType: TextInputType.number,
                   ),
                 ),
                 IconButton(

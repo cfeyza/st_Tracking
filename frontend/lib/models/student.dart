@@ -3,7 +3,7 @@ class StudentProfile {
   final String studentCode;
   final String name;
   final String surname;
-  final String schoolId;
+  final int schoolId;
   final String email;
 
   StudentProfile({
@@ -21,7 +21,7 @@ class StudentProfile {
       studentCode: json['student_code'] as String,
       name: json['name'] as String,
       surname: json['surname'] as String,
-      schoolId: json['school_id'] as String,
+      schoolId: json['school_id'] as int,
       email: json['email'] as String,
     );
   }

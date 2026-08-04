@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base
@@ -15,7 +15,7 @@ class StudentProfile(Base):
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     surname: Mapped[str] = mapped_column(String(100), nullable=False)
-    school_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    school_id: Mapped[int] = mapped_column(Integer, nullable=False)
     student_code: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
 
     user: Mapped["User | None"] = relationship(back_populates="student_profile")

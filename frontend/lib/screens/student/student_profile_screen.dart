@@ -48,7 +48,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     _ProfileField(label: 'Student code', value: student.studentCode, copyable: true),
                     _ProfileField(label: 'Name', value: student.name),
                     _ProfileField(label: 'Surname', value: student.surname),
-                    _ProfileField(label: 'School ID', value: student.schoolId),
+                    _ProfileField(label: 'School ID', value: student.schoolId.toString()),
                     _ProfileField(label: 'Email', value: student.email),
                   ],
                 ),

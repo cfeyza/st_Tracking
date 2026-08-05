@@ -44,3 +44,19 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /android/.kotlin/
+
+# Secrets / API keys - do not commit
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+**/*.env
+**/.env
+**/.env.*
+**/*serviceaccount*.json
+**/*service-account*.json
+**/*.p12
+**/*.jks
+**/*.keystore
+key.properties
+android/key.properties

@@ -1,0 +1,20 @@
+# Secrets / credentials / API keys - never commit these
+*.env
+.env
+.env.*
+**/.env
+**/.env.*
+*serviceaccount*.json
+*service-account*.json
+firebase_options.dart
+google-services.json
+GoogleService-Info.plist
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+key.properties
+*credentials*.json
+*secret*.json
+*.env.local

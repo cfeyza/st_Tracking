@@ -1,5 +1,6 @@
 import '../models/auth.dart';
 import 'api_client.dart';
+import 'fcm_service.dart';
 import 'session.dart';
 
 class AuthService {
@@ -33,6 +34,9 @@ class AuthService {
     );
     final response = LoginResponse.fromJson(json as Map<String, dynamic>);
     await Session.save(response.accessToken, response.role);
+    if (response.role == 'student') {
+      await FcmService.registerTokenWithBackend();
+    }
     return response;
   }
 

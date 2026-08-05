@@ -1,5 +1,9 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/parent/parent_add_student_code_screen.dart';
@@ -18,11 +22,32 @@ import 'screens/teacher/teacher_grades_screen.dart';
 import 'screens/teacher/teacher_home_screen.dart';
 import 'screens/teacher/teacher_profile_screen.dart';
 import 'screens/teacher/teacher_students_screen.dart';
+import 'services/fcm_service.dart';
 import 'services/session.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Runs in a separate isolate spawned fresh when the app is backgrounded or
+  // killed, so Firebase must be initialized again here.
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await Session.load();
+
+  if (!kIsWeb) {
+    try {
+      await FcmService.init();
+    } catch (e, stackTrace) {
+      debugPrint('FCM init failed: $e');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+
   runApp(const StudentTrackingApp());
 }
 

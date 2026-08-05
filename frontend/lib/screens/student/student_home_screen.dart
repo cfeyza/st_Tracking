@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_messaging/firebase_messaging.dart'; //
+import 'package:student_tracking_app/services/fcm_service.dart';
+import 'dart:async';
 import '../../models/announcement.dart';
 import '../../services/api_client.dart';
 import '../../services/student_service.dart';
@@ -14,16 +16,38 @@ class StudentHomeScreen extends StatefulWidget {
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   late Future<List<Announcement>> _future;
-
+  StreamSubscription<RemoteMessage>? _fcmSubscription; // FCM Aboneliği
+  
   @override
   void initState() {
     super.initState();
     _future = StudentService.listAnnouncements();
+    // Öğrenci ekranı açıldığında token'ı backend'e yazmaya zorlayın
+    FcmService.registerTokenWithBackend(force: true); //[cite: 7]
+    
+    // Uygulama açıkken (Foreground) yeni bir FCM bildirimi gelirse listenize otomatik yenileme atın
+    _fcmSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) { //
+      // Gelen bildirim bir anons ise arayüzü güncelleyin
+      _refresh(); //[cite: 1]
+    });
+  }
+
+  @override
+  void dispose() {
+    _fcmSubscription?.cancel(); // Memory leak olmaması için aboneliği kapatın
+    super.dispose();
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = StudentService.listAnnouncements());
-    await _future;
+    // 1. Yeni veriyi çekip bitmesini bekleyin
+    final newAnnouncements = await StudentService.listAnnouncements();
+    
+    // 2. İşlem tamamlandıktan sonra setState ile ekranı güncelleyin
+    if (mounted) {
+      setState(() {
+        _future = Future.value(newAnnouncements);
+      });
+    }
   }
 
   @override

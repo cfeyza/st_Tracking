@@ -1,4 +1,4 @@
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/classroom.dart';
@@ -103,17 +103,21 @@ class _TeacherAddClassroomScreenState extends State<TeacherAddClassroomScreen> {
   }
 
   Future<void> _importPdf() async {
-    final picked = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: true,
+    const typeGroup = XTypeGroup(
+      label: 'pdf',
+      extensions: <String>['pdf'],
+      mimeTypes: <String>['application/pdf'],
     );
-    final file = picked?.files.single;
-    if (file == null || file.bytes == null) return;
+
+    final file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+    if (file == null) return;
+
+    final bytes = await file.readAsBytes();
+    final fileName = file.name;
 
     setState(() => _importingPdf = true);
     try {
-      final result = await TeacherService.importClassroomsPdf(file.bytes!, file.name);
+      final result = await TeacherService.importClassroomsPdf(bytes, fileName);
       if (!mounted) return;
       await _showImportSummary(result);
       if (!mounted) return;
@@ -125,7 +129,7 @@ class _TeacherAddClassroomScreenState extends State<TeacherAddClassroomScreen> {
       if (mounted) setState(() => _importingPdf = false);
     }
   }
-
+  
   Future<void> _showImportSummary(PdfImportResult result) {
     return showDialog<void>(
       context: context,

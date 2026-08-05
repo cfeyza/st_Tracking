@@ -1,13 +1,13 @@
-from pydantic import BaseModel, EmailStr, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.models.user import Role
 
 
 class RegisterRequest(BaseModel):
     role: Role
-    name: str
-    surname: str
-    email: EmailStr
+    name: str = Field(max_length=100)
+    surname: str = Field(max_length=100)
+    email: EmailStr = Field(max_length=255)
     password: str
     school_id: int | None = None
 

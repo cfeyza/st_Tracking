@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'navigation.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/parent/parent_add_student_code_screen.dart';
@@ -127,6 +128,7 @@ class StudentTrackingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Student Tracking App',
+      navigatorKey: navigatorKey,
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo), useMaterial3: true),
       initialRoute: _initialRoute(),
       onGenerateRoute: _onGenerateRoute,

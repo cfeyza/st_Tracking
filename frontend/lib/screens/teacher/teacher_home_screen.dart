@@ -214,7 +214,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                         ListTile(
                           title: Text(a.text),
                           subtitle: Text(
-                            '${a.classrooms.join(", ")} · ${a.createdAt.toLocal()}'.split('.').first,
+                            '${a.classrooms.join(", ")} · ${a.createdAt.toLocal().toString().split('.').first}',
                           ),
                         ),
                     ],

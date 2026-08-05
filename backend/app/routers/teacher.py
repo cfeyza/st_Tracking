@@ -293,25 +293,6 @@ async def import_classrooms_pdf(
     return PdfImportResult(classrooms=list(classroom_results.values()), errors=errors)
 
 
-@router.delete("/classrooms/{classroom_id}/students/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def unenroll_student(
-    classroom_id: int,
-    student_id: int,
-    teacher: TeacherProfile = Depends(get_current_teacher),
-    db: AsyncSession = Depends(get_db),
-) -> None:
-    classroom = await _get_owned_classroom(db, teacher.id, classroom_id)
-    result = await db.execute(
-        select(StudentProfile).options(selectinload(StudentProfile.classrooms)).where(StudentProfile.id == student_id)
-    )
-    student = result.scalar_one_or_none()
-    if student is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
-    if classroom in student.classrooms:
-        student.classrooms.remove(classroom)
-    await db.commit()
-
-
 SortField = Literal["classroom", "name", "surname", "school_id"]
 SortOrder = Literal["asc", "desc"]
 

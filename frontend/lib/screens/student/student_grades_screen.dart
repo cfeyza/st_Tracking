@@ -48,7 +48,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                 title: Text(g.subject),
                 subtitle: Text(
                   '${g.teacherName}${g.classroomName != null ? " · ${g.classroomName}" : ""}\n'
-                  '${g.createdAt.toLocal()}'.split('.').first,
+                  '${g.createdAt.toLocal().toString().split('.').first}',
                 ),
                 isThreeLine: true,
               );

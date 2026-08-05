@@ -81,7 +81,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                     title: Text(a.text),
                     subtitle: Text(
                       'For ${a.studentName} · ${a.teacherName} · ${a.classrooms.join(", ")}\n'
-                      '${a.createdAt.toLocal()}'.split('.').first,
+                      '${a.createdAt.toLocal().toString().split('.').first}',
                     ),
                     isThreeLine: true,
                   ),

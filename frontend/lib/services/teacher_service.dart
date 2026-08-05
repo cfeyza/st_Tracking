@@ -55,10 +55,6 @@ class TeacherService {
     return PdfImportResult.fromJson(json as Map<String, dynamic>);
   }
 
-  static Future<void> removeStudentFromClassroom(int classroomId, int studentId) async {
-    await ApiClient.delete('/teacher/classrooms/$classroomId/students/$studentId');
-  }
-
   static Future<Paginated<StudentListItem>> listStudents({
     int? classroomId,
     String sortBy = 'classroom',

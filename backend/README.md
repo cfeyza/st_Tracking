@@ -107,7 +107,6 @@ A few things in the spec were implied rather than spelled out; here's how they w
 | POST/GET | /teacher/classrooms | teacher | create classroom (with optional initial roster) / list classrooms |
 | POST | /teacher/classrooms/{id}/roster | teacher | add students to a classroom by name/surname/school_id |
 | POST | /teacher/classrooms/{id}/roster/pdf | teacher | **stub** — PDF roster import, not implemented yet (501) |
-| DELETE | /teacher/classrooms/{id}/students/{student_id} | teacher | remove a student from a classroom |
 | GET | /teacher/students | teacher | MYSTUDENTS_T — filter by classroom, sort by classroom/name/surname/school_id, includes `is_registered` |
 | POST/GET | /teacher/announcements | teacher | create / list announcements |
 | POST/GET | /teacher/grades | teacher | add / list grades |

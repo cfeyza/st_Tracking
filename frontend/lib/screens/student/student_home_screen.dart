@@ -104,7 +104,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   child: ListTile(
                     title: Text(a.text),
                     subtitle: Text(
-                      '${a.teacherName} · ${a.classrooms.join(", ")}\n${a.createdAt.toLocal()}'.split('.').first,
+                      '${a.teacherName} · ${a.classrooms.join(", ")}\n${a.createdAt.toLocal().toString().split('.').first}',
                     ),
                     isThreeLine: true,
                   ),

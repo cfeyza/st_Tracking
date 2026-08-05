@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DeviceTokenRegister(BaseModel):
-    token: str
+    token: str = Field(max_length=255)
 
 
 class DeviceTokenOut(BaseModel):

@@ -1,11 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class RosterStudentIn(BaseModel):
-    name: str
-    surname: str
+    name: str = Field(max_length=100)
+    surname: str = Field(max_length=100)
     school_id: int
 
     @field_validator("name", "surname")
@@ -24,7 +24,7 @@ class RosterStudentIn(BaseModel):
 
 
 class ClassroomCreate(BaseModel):
-    name: str
+    name: str = Field(max_length=100)
     students: list[RosterStudentIn] = []
 
 

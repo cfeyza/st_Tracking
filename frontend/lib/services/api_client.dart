@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import '../navigation.dart';
 import 'session.dart';
 
 class ApiException implements Exception {
@@ -27,10 +28,19 @@ class ApiClient {
     return headers;
   }
 
-  static dynamic _decode(http.Response response) {
+  /// If [auth] is true, a 401 means the session's JWT was rejected (expired
+  /// or otherwise invalid) rather than a login attempt with bad credentials,
+  /// so we drop the session and bounce back to the login screen. The
+  /// `Session.token != null` guard avoids piling up redundant navigations
+  /// when several authenticated requests 401 around the same time.
+  static dynamic _decode(http.Response response, {bool auth = true}) {
     final body = response.body.isEmpty ? null : jsonDecode(response.body);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
+    }
+    if (auth && response.statusCode == 401 && Session.token != null) {
+      Session.clear();
+      navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
     }
     String message = 'Request failed (${response.statusCode})';
     if (body is Map && body['detail'] != null) {
@@ -41,7 +51,7 @@ class ApiClient {
 
   static Future<dynamic> get(String path, {bool auth = true}) async {
     final response = await http.get(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth));
-    return _decode(response);
+    return _decode(response, auth: auth);
   }
 
   static Future<dynamic> post(String path, {Map<String, dynamic>? body, bool auth = true}) async {
@@ -50,12 +60,12 @@ class ApiClient {
       headers: _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
     );
-    return _decode(response);
+    return _decode(response, auth: auth);
   }
 
   static Future<dynamic> delete(String path, {bool auth = true}) async {
     final response = await http.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth));
-    return _decode(response);
+    return _decode(response, auth: auth);
   }
 
   static Future<dynamic> postMultipart(
@@ -70,6 +80,6 @@ class ApiClient {
     request.files.add(http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
-    return _decode(response);
+    return _decode(response, auth: auth);
   }
 }

@@ -20,6 +20,8 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://student_tracking_user:changeme@db:5432/student_tracking
+    volumes:
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     ports:
       - "8000:8000"
     command: >

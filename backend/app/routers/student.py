@@ -7,11 +7,13 @@ from app.db.session import get_db
 from app.deps import get_current_student
 from app.models.announcement import Announcement
 from app.models.classroom import Classroom, classroom_students
+from app.models.device_token import DeviceToken
 from app.models.grade import Grade
 from app.models.student import StudentProfile
 from app.models.teacher import TeacherProfile
 from app.models.user import User
 from app.schemas.announcement import StudentAnnouncementOut
+from app.schemas.device_token import DeviceTokenOut, DeviceTokenRegister
 from app.schemas.grade import GradeOut
 from app.schemas.student import StudentProfileOut, TeacherCodeRequest, TeacherCodeResponse
 from app.services.roster import find_and_link_teacher_code
@@ -33,6 +35,33 @@ async def get_me(
         school_id=student.school_id,
         email=user.email,
     )
+
+
+@router.post("/device-token", response_model=DeviceTokenOut, status_code=status.HTTP_200_OK)
+async def register_device_token(
+    payload: DeviceTokenRegister,
+    student: StudentProfile = Depends(get_current_student),
+    db: AsyncSession = Depends(get_db),
+) -> DeviceTokenOut:
+    """Registers an FCM device token for push notifications. Upserts by
+    token value: if this exact token is already registered (e.g. the same
+    device was previously used by a different student, or this student is
+    just logging in again), it's reassigned to the current student rather
+    than inserted twice.
+    """
+    token = payload.token.strip()
+    result = await db.execute(select(DeviceToken).where(DeviceToken.token == token))
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        existing.student_id = student.id
+        device_token = existing
+    else:
+        device_token = DeviceToken(student_id=student.id, token=token)
+        db.add(device_token)
+
+    await db.commit()
+    await db.refresh(device_token)
+    return DeviceTokenOut(id=device_token.id, token=device_token.token)
 
 
 @router.post("/teacher-code", response_model=TeacherCodeResponse)

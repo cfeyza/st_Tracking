@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "*"
 
+    FIREBASE_CREDENTIALS_PATH: str = "firebase-service-account.json"
+
     @property
     def cors_origin_list(self) -> list[str]:
         if self.CORS_ORIGINS.strip() == "*":

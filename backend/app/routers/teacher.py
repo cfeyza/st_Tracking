@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -25,6 +25,7 @@ from app.schemas.grade import GradeCreate, GradeOut
 from app.schemas.pagination import Page
 from app.schemas.teacher import StudentListItem, TeacherDashboardOut, TeacherProfileOut
 from app.services.pdf_roster import parse_pdf
+from app.services.push import send_announcement_push
 from app.services.roster import RosterEntryInput, import_roster
 
 router = APIRouter(prefix="/teacher", tags=["teacher"])
@@ -415,6 +416,7 @@ async def delete_student(
 @router.post("/announcements", response_model=AnnouncementOut, status_code=status.HTTP_201_CREATED)
 async def create_announcement(
     payload: AnnouncementCreate,
+    background_tasks: BackgroundTasks,
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> AnnouncementOut:
@@ -432,6 +434,13 @@ async def create_announcement(
     db.add(announcement)
     await db.commit()
     await db.refresh(announcement)
+
+    background_tasks.add_task(
+        send_announcement_push,
+        [c.id for c in classrooms],
+        title=f"{teacher.name} {teacher.surname}",
+        body=announcement.text[:180] + ("..." if len(announcement.text) > 180 else ""),
+    )
 
     return AnnouncementOut(
         id=announcement.id,

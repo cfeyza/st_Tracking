@@ -29,3 +29,4 @@ class StudentProfile(Base):
         secondary="classroom_students", back_populates="students"
     )
     grades: Mapped[list["Grade"]] = relationship(back_populates="student", cascade="all, delete-orphan")
+    device_tokens: Mapped[list["DeviceToken"]] = relationship(back_populates="student", cascade="all, delete-orphan")

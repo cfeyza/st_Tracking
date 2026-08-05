@@ -1,5 +1,6 @@
 from app.models.announcement import Announcement, announcement_classrooms
 from app.models.classroom import Classroom, classroom_students
+from app.models.device_token import DeviceToken
 from app.models.grade import Grade
 from app.models.parent import ParentProfile, parent_students
 from app.models.student import StudentProfile
@@ -12,6 +13,7 @@ __all__ = [
     "announcement_classrooms",
     "Classroom",
     "classroom_students",
+    "DeviceToken",
     "Grade",
     "ParentProfile",
     "parent_students",

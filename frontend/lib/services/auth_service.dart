@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../models/auth.dart';
 import 'api_client.dart';
 import 'fcm_service.dart';
@@ -35,7 +37,10 @@ class AuthService {
     final response = LoginResponse.fromJson(json as Map<String, dynamic>);
     await Session.save(response.accessToken, response.role);
     if (response.role == 'student') {
-      await FcmService.registerTokenWithBackend();
+      // Fire-and-forget: FCM setup (Android-only, see FcmService) must never
+      // block login/navigation if it hangs or fails (e.g. on web, or a
+      // device without push permission).
+      unawaited(FcmService.registerTokenWithBackend());
     }
     return response;
   }

@@ -470,6 +470,18 @@ async def add_grade(
         classroom = await _get_owned_classroom(db, teacher.id, payload.classroom_id)
         classroom_name = classroom.name
 
+        membership = await db.execute(
+            select(classroom_students).where(
+                classroom_students.c.classroom_id == payload.classroom_id,
+                classroom_students.c.student_id == payload.student_id,
+            )
+        )
+        if membership.first() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Student not found in the specified classroom.",
+            )
+
     student = await db.get(StudentProfile, payload.student_id)
 
     grade = Grade(

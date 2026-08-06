@@ -56,22 +56,19 @@ class FcmService {
   }
 
   static Future<void> registerTokenWithBackend({String? tokenOverride, bool force = false}) async {
-    final token = tokenOverride ?? await FirebaseMessaging.instance.getToken();
-    print(">>> FCM TOKEN ALINDI: $token"); // Log 1
-    if (token == null) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    
-    // EĞER force true DEĞİLSE ve önceden kaydedilmişse atla
-    if (!force && prefs.getString(_lastSentTokenKey) == token) {
-      print(">>> FCM TOKEN ZATEN KAYITLI, ATLANDI."); // Log 2
-      return;
-    }
-    print(">>> BACKEND'E TOKEN GÖNDERİLİYOR..."); // Log 3
     try {
+      final token = tokenOverride ??
+          await FirebaseMessaging.instance.getToken().timeout(const Duration(seconds: 10));
+      if (token == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+
+      // EĞER force true DEĞİLSE ve önceden kaydedilmişse atla
+      if (!force && prefs.getString(_lastSentTokenKey) == token) {
+        return;
+      }
       await ApiClient.post('/student/device-token', body: {'token': token});
       await prefs.setString(_lastSentTokenKey, token);
-      print("FCM Token successfully registered with backend: $token");
     } catch (e) {
       print("Failed to register FCM token: $e");
     }

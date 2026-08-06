@@ -54,21 +54,24 @@ async def import_roster(
     """
     result_profiles: list[StudentProfile] = []
 
+    existing_school_ids = await db.execute(
+        select(StudentProfile.school_id).join(
+            teacher_students, teacher_students.c.student_id == StudentProfile.id
+        ).where(teacher_students.c.teacher_id == teacher.id)
+    )
+    taken_school_ids = {row[0] for row in existing_school_ids.all()}
+
     for entry in entries:
         school_id = entry.school_id
         name = entry.name.strip()
         surname = entry.surname.strip()
 
-        existing = await db.execute(
-            select(StudentProfile)
-            .join(teacher_students, teacher_students.c.student_id == StudentProfile.id)
-            .where(teacher_students.c.teacher_id == teacher.id, StudentProfile.school_id == school_id)
-        )
-        if existing.scalars().first() is not None:
+        if school_id in taken_school_ids:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"A student with school ID '{school_id}' already exists in your roster.",
             )
+        taken_school_ids.add(school_id)
 
         student = StudentProfile(
             user_id=None,

@@ -117,7 +117,7 @@ A few things in the spec were implied rather than spelled out; here's how they w
 | GET | /parent/me | parent | profile page data |
 | POST | /parent/student-code | parent | link to a student |
 | GET | /parent/students | parent | MYSTUDENTS_P |
-| GET | /parent/announcements | parent | announcement feed (tagged with student name) |
+| GET | /parent/announcements | parent | announcement feed (tagged with student name), paginated |
 
 ## Verified so far
 

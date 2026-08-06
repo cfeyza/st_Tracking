@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/announcement.dart';
+import '../../models/paginated.dart';
 import '../../services/api_client.dart';
 import '../../services/parent_service.dart';
 import '../../widgets/app_drawer.dart';
@@ -13,17 +14,25 @@ class ParentHomeScreen extends StatefulWidget {
 }
 
 class _ParentHomeScreenState extends State<ParentHomeScreen> {
-  late Future<List<Announcement>> _future;
+  int _page = 1;
+  late Future<Paginated<Announcement>> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = ParentService.listAnnouncements();
+    _future = ParentService.listAnnouncements(page: _page);
   }
 
   Future<void> _refresh() async {
-    setState(() => _future = ParentService.listAnnouncements());
+    setState(() => _future = ParentService.listAnnouncements(page: _page));
     await _future;
+  }
+
+  void _goToPage(int page) {
+    setState(() {
+      _page = page;
+      _future = ParentService.listAnnouncements(page: _page);
+    });
   }
 
   @override
@@ -50,7 +59,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        child: FutureBuilder<List<Announcement>>(
+        child: FutureBuilder<Paginated<Announcement>>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -64,32 +73,69 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                 ),
               ]);
             }
-            final announcements = snapshot.data!;
+            final result = snapshot.data!;
+            final announcements = result.items;
             if (announcements.isEmpty) {
               return ListView(children: const [
                 Padding(padding: EdgeInsets.all(24), child: Text('No announcements yet.')),
               ]);
             }
-            return ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: announcements.length,
-              separatorBuilder: (_, _) => const Divider(),
-              itemBuilder: (context, index) {
-                final a = announcements[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(a.text),
-                    subtitle: Text(
-                      'For ${a.studentName} · ${a.teacherName} · ${a.classrooms.join(", ")}\n'
-                      '${a.createdAt.toLocal().toString().split('.').first}',
-                    ),
-                    isThreeLine: true,
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: announcements.length,
+                    separatorBuilder: (_, _) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final a = announcements[index];
+                      return Card(
+                        child: ListTile(
+                          title: Text(a.text),
+                          subtitle: Text(
+                            'For ${a.studentName} · ${a.teacherName} · ${a.classrooms.join(", ")}\n'
+                            '${a.createdAt.toLocal().toString().split('.').first}',
+                          ),
+                          isThreeLine: true,
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+                _PaginationBar(page: result.page, totalPages: result.totalPages, onPageChange: _goToPage),
+              ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _PaginationBar extends StatelessWidget {
+  final int page;
+  final int totalPages;
+  final ValueChanged<int> onPageChange;
+
+  const _PaginationBar({required this.page, required this.totalPages, required this.onPageChange});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: page > 1 ? () => onPageChange(page - 1) : null,
+          ),
+          Text('Page $page of $totalPages'),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: page < totalPages ? () => onPageChange(page + 1) : null,
+          ),
+        ],
       ),
     );
   }

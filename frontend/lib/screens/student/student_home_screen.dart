@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'; //
 import 'package:student_tracking_app/services/fcm_service.dart';
@@ -22,14 +23,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   void initState() {
     super.initState();
     _future = StudentService.listAnnouncements();
-    // Öğrenci ekranı açıldığında token'ı backend'e yazmaya zorlayın
-    FcmService.registerTokenWithBackend(force: true); //[cite: 7]
-    
-    // Uygulama açıkken (Foreground) yeni bir FCM bildirimi gelirse listenize otomatik yenileme atın
-    _fcmSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) { //
-      // Gelen bildirim bir anons ise arayüzü güncelleyin
-      _refresh(); //[cite: 1]
-    });
+    // Push bildirimleri sadece mobilde destekleniyor; web'de izin istemeyin.
+    if (!kIsWeb) {
+      // Öğrenci ekranı açıldığında token'ı backend'e yazmaya zorlayın
+      FcmService.registerTokenWithBackend(force: true); //[cite: 7]
+
+      // Uygulama açıkken (Foreground) yeni bir FCM bildirimi gelirse listenize otomatik yenileme atın
+      _fcmSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) { //
+        // Gelen bildirim bir anons ise arayüzü güncelleyin
+        _refresh(); //[cite: 1]
+      });
+    }
   }
 
   @override

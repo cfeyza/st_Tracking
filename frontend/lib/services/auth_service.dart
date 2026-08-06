@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../models/auth.dart';
 import 'api_client.dart';
 import 'fcm_service.dart';
@@ -36,10 +38,10 @@ class AuthService {
     );
     final response = LoginResponse.fromJson(json as Map<String, dynamic>);
     await Session.save(response.accessToken, response.role);
-    if (response.role == 'student') {
+    if (response.role == 'student' && !kIsWeb) {
       // Fire-and-forget: FCM setup (Android-only, see FcmService) must never
-      // block login/navigation if it hangs or fails (e.g. on web, or a
-      // device without push permission).
+      // block login/navigation if it hangs or fails (e.g. a device without
+      // push permission). Web doesn't send push, so skip it entirely there.
       unawaited(FcmService.registerTokenWithBackend());
     }
     return response;

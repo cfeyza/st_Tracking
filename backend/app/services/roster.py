@@ -178,6 +178,10 @@ async def find_and_link_teacher_code(
     classrooms_result = await db.execute(
         select(Classroom.name)
         .join(classroom_students, classroom_students.c.classroom_id == Classroom.id)
-        .where(classroom_students.c.student_id == student.id, Classroom.teacher_id == teacher.id)
+        .where(
+            classroom_students.c.student_id == student.id,
+            Classroom.teacher_id == teacher.id,
+            Classroom.deleted_at.is_(None),
+        )
     )
     return [row[0] for row in classrooms_result.all()]

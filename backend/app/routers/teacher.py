@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile, status
@@ -49,7 +50,9 @@ async def get_dashboard(
     db: AsyncSession = Depends(get_db),
 ) -> TeacherDashboardOut:
     classroom_count = await db.scalar(
-        select(func.count()).select_from(Classroom).where(Classroom.teacher_id == teacher.id)
+        select(func.count()).select_from(Classroom).where(
+            Classroom.teacher_id == teacher.id, Classroom.deleted_at.is_(None)
+        )
     )
     student_count = await db.scalar(
         select(func.count()).select_from(teacher_students).where(teacher_students.c.teacher_id == teacher.id)
@@ -65,7 +68,11 @@ async def create_classroom(
 ) -> ClassroomOut:
     name = payload.name.strip()
     existing = await db.execute(
-        select(Classroom).where(Classroom.teacher_id == teacher.id, func.lower(Classroom.name) == name.lower())
+        select(Classroom).where(
+            Classroom.teacher_id == teacher.id,
+            func.lower(Classroom.name) == name.lower(),
+            Classroom.deleted_at.is_(None),
+        )
     )
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(
@@ -95,13 +102,15 @@ async def list_classrooms(
     db: AsyncSession = Depends(get_db),
 ) -> Page[ClassroomOut]:
     total = await db.scalar(
-        select(func.count()).select_from(Classroom).where(Classroom.teacher_id == teacher.id)
+        select(func.count()).select_from(Classroom).where(
+            Classroom.teacher_id == teacher.id, Classroom.deleted_at.is_(None)
+        )
     )
 
     result = await db.execute(
         select(Classroom, func.count(classroom_students.c.student_id))
         .outerjoin(classroom_students, classroom_students.c.classroom_id == Classroom.id)
-        .where(Classroom.teacher_id == teacher.id)
+        .where(Classroom.teacher_id == teacher.id, Classroom.deleted_at.is_(None))
         .group_by(Classroom.id)
         .order_by(Classroom.name)
         .limit(page_size)
@@ -116,7 +125,7 @@ async def list_classrooms(
 
 async def _get_owned_classroom(db: AsyncSession, teacher_id: int, classroom_id: int) -> Classroom:
     classroom = await db.get(Classroom, classroom_id)
-    if classroom is None or classroom.teacher_id != teacher_id:
+    if classroom is None or classroom.teacher_id != teacher_id or classroom.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classroom not found")
     return classroom
 
@@ -127,11 +136,11 @@ async def delete_classroom(
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Deletes the classroom and its roster links. Any student left with no
-    other classroom under this teacher is also unlinked from the teacher's
-    roster (teacher_students) — same as delete_student, just automatic. The
-    StudentProfile row, grade history, and other teachers'/parents' links
-    stay intact.
+    """Soft-deletes the classroom and mirrors the side effects of a hard
+    delete: classroom_students links and student roster membership for orphaned
+    students are cleaned up, and Grade.classroom_id references are nullified
+    (mirroring the ondelete="SET NULL" FK behaviour). StudentProfile rows,
+    grade history, parent links, and other teachers' relationships are preserved.
     """
     classroom = await _get_owned_classroom(db, teacher.id, classroom_id)
 
@@ -141,7 +150,17 @@ async def delete_classroom(
         )
     ).scalars().all()
 
-    await db.delete(classroom)
+    # Soft-delete: stamp deleted_at instead of removing the row.
+    classroom.deleted_at = datetime.now(timezone.utc)
+
+    # Nullify grade classroom references — mirrors ondelete="SET NULL".
+    await db.execute(
+        Grade.__table__.update().where(Grade.classroom_id == classroom_id).values(classroom_id=None)
+    )
+
+    # Remove classroom_students links — mirrors the CASCADE that a hard delete would trigger.
+    await db.execute(classroom_students.delete().where(classroom_students.c.classroom_id == classroom_id))
+
     await db.flush()
 
     if student_ids:
@@ -149,7 +168,11 @@ async def delete_classroom(
             await db.execute(
                 select(classroom_students.c.student_id)
                 .join(Classroom, Classroom.id == classroom_students.c.classroom_id)
-                .where(Classroom.teacher_id == teacher.id, classroom_students.c.student_id.in_(student_ids))
+                .where(
+                    Classroom.teacher_id == teacher.id,
+                    Classroom.deleted_at.is_(None),
+                    classroom_students.c.student_id.in_(student_ids),
+                )
             )
         ).scalars().all()
         orphaned_ids = set(student_ids) - set(still_enrolled)
@@ -249,7 +272,9 @@ async def import_classrooms_pdf(
 
         existing = await db.execute(
             select(Classroom).where(
-                Classroom.teacher_id == teacher.id, func.lower(Classroom.name) == page.classroom_name.lower()
+                Classroom.teacher_id == teacher.id,
+                func.lower(Classroom.name) == page.classroom_name.lower(),
+                Classroom.deleted_at.is_(None),
             )
         )
         classroom = existing.scalar_one_or_none()
@@ -314,7 +339,7 @@ async def list_students(
             func.string_agg(Classroom.name, ", ").label("classroom_names"),
         )
         .select_from(classroom_students.join(Classroom, Classroom.id == classroom_students.c.classroom_id))
-        .where(Classroom.teacher_id == teacher.id)
+        .where(Classroom.teacher_id == teacher.id, Classroom.deleted_at.is_(None))
         .group_by(classroom_students.c.student_id)
         .subquery()
     )
@@ -406,7 +431,11 @@ async def create_announcement(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one target classroom is required")
 
     result = await db.execute(
-        select(Classroom).where(Classroom.id.in_(payload.classroom_ids), Classroom.teacher_id == teacher.id)
+        select(Classroom).where(
+            Classroom.id.in_(payload.classroom_ids),
+            Classroom.teacher_id == teacher.id,
+            Classroom.deleted_at.is_(None),
+        )
     )
     classrooms = result.scalars().all()
     if len(classrooms) != len(set(payload.classroom_ids)):

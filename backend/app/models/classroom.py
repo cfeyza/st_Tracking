@@ -21,6 +21,7 @@ class Classroom(Base):
     teacher_id: Mapped[int] = mapped_column(ForeignKey("teacher_profiles.id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     teacher: Mapped["TeacherProfile"] = relationship(back_populates="classrooms")
     students: Mapped[list["StudentProfile"]] = relationship(

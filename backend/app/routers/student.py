@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.constants import DEFAULT_PAGE_SIZE
 from app.db.session import get_db
 from app.deps import get_current_student
-from app.models.announcement import Announcement
+from app.models.announcement import Announcement, announcement_classrooms
 from app.models.classroom import Classroom, classroom_students
 from app.models.device_token import DeviceToken
 from app.models.grade import Grade
@@ -13,9 +14,10 @@ from app.models.student import StudentProfile
 from app.models.teacher import TeacherProfile
 from app.models.user import User
 from app.schemas.announcement import StudentAnnouncementOut
+from app.schemas.pagination import Page
 from app.schemas.device_token import DeviceTokenOut, DeviceTokenRegister
 from app.schemas.grade import GradeOut
-from app.schemas.student import StudentProfileOut, TeacherCodeRequest, TeacherCodeResponse
+from app.schemas.student import StudentProfileOut, TeacherCodeRequest, TeacherCodeResponse, TeacherFilterItem
 from app.services.roster import find_and_link_teacher_code
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -86,24 +88,51 @@ async def add_teacher_code(
     return TeacherCodeResponse(teacher_name=f"{teacher.name} {teacher.surname}", classrooms=classrooms)
 
 
-@router.get("/announcements", response_model=list[StudentAnnouncementOut])
-async def list_announcements(
+@router.get("/announcement-teachers", response_model=list[TeacherFilterItem])
+async def list_announcement_teachers(
     student: StudentProfile = Depends(get_current_student),
     db: AsyncSession = Depends(get_db),
-) -> list[StudentAnnouncementOut]:
+) -> list[TeacherFilterItem]:
+    result = await db.execute(
+        select(TeacherProfile)
+        .join(Announcement, Announcement.teacher_id == TeacherProfile.id)
+        .join(announcement_classrooms, announcement_classrooms.c.announcement_id == Announcement.id)
+        .join(classroom_students, classroom_students.c.classroom_id == announcement_classrooms.c.classroom_id)
+        .where(classroom_students.c.student_id == student.id)
+        .distinct()
+        .order_by(TeacherProfile.name, TeacherProfile.surname)
+    )
+    teachers = result.scalars().unique().all()
+    return [TeacherFilterItem(id=t.id, name=f"{t.name} {t.surname}") for t in teachers]
+
+
+@router.get("/announcements", response_model=Page[StudentAnnouncementOut])
+async def list_announcements(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
+    teacher_id: int | None = Query(default=None),
+    student: StudentProfile = Depends(get_current_student),
+    db: AsyncSession = Depends(get_db),
+) -> Page[StudentAnnouncementOut]:
     my_classroom_ids = select(classroom_students.c.classroom_id).where(
         classroom_students.c.student_id == student.id
     )
-
+    filters = [Announcement.classrooms.any(Classroom.id.in_(my_classroom_ids))]
+    if teacher_id is not None:
+        filters.append(Announcement.teacher_id == teacher_id)
+    total = await db.scalar(
+        select(func.count(Announcement.id)).where(*filters)
+    )
     result = await db.execute(
         select(Announcement)
         .options(selectinload(Announcement.classrooms), selectinload(Announcement.teacher))
-        .where(Announcement.classrooms.any(Classroom.id.in_(my_classroom_ids)))
+        .where(*filters)
         .order_by(Announcement.created_at.desc())
+        .limit(page_size)
+        .offset((page - 1) * page_size)
     )
     announcements = result.scalars().unique().all()
-
-    return [
+    items = [
         StudentAnnouncementOut(
             id=a.id,
             text=a.text,
@@ -113,6 +142,7 @@ async def list_announcements(
         )
         for a in announcements
     ]
+    return Page.build(items=items, total=total or 0, page=page, page_size=page_size)
 
 
 @router.get("/grades", response_model=list[GradeOut])

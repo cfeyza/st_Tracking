@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../models/announcement.dart';
 import '../../models/classroom.dart';
+import '../../models/paginated.dart';
 import '../../models/teacher.dart';
 import '../../services/api_client.dart';
 import '../../services/teacher_service.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/pagination_bar.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -15,7 +17,8 @@ class TeacherHomeScreen extends StatefulWidget {
 }
 
 class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
-  late Future<(TeacherDashboard, List<Announcement>)> _future;
+  int _page = 1;
+  late Future<(TeacherDashboard, Paginated<Announcement>)> _future;
 
   @override
   void initState() {
@@ -26,13 +29,20 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   void _load() {
     _future = Future.wait([
       TeacherService.getDashboard(),
-      TeacherService.listAnnouncements(),
-    ]).then((results) => (results[0] as TeacherDashboard, results[1] as List<Announcement>));
+      TeacherService.listAnnouncements(page: _page),
+    ]).then((results) => (results[0] as TeacherDashboard, results[1] as Paginated<Announcement>));
   }
 
   Future<void> _refresh() async {
     setState(_load);
     await _future;
+  }
+
+  void _goToPage(int page) {
+    setState(() {
+      _page = page;
+      _load();
+    });
   }
 
   Future<void> _openAddAnnouncementDialog() async {
@@ -152,7 +162,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        child: FutureBuilder<(TeacherDashboard, List<Announcement>)>(
+        child: FutureBuilder<(TeacherDashboard, Paginated<Announcement>)>(
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
@@ -161,7 +171,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             if (snapshot.hasError) {
               return ListView(children: [Padding(padding: const EdgeInsets.all(24), child: Text('${snapshot.error}'))]);
             }
-            final (dashboard, announcements) = snapshot.data!;
+            final (dashboard, result) = snapshot.data!;
+            final announcements = result.items;
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -205,7 +216,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                         ),
                       ),
                       const Divider(height: 1),
-                      if (announcements.isEmpty)
+                      if (result.total == 0)
                         const Padding(
                           padding: EdgeInsets.all(16),
                           child: Text('No announcements yet.'),
@@ -217,6 +228,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                             '${a.classrooms.join(", ")} · ${a.createdAt.toLocal().toString().split('.').first}',
                           ),
                         ),
+                      PaginationBar(
+                        page: result.page,
+                        totalPages: result.totalPages,
+                        onPageChange: _goToPage,
+                      ),
                     ],
                   ),
                 ),

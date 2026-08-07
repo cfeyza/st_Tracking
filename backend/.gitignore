@@ -1,5 +1,29 @@
+.env.example
 .venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
+.env.*
 firebase-service-account.json
+*service-account*.json
+*serviceaccount*.json
+*credentials*.json
+*secret*.json
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Flask instance folder (may contain secrets)
+instance/
+
+# User uploads / media
+uploads/
+media/

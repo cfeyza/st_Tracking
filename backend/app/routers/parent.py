@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.constants import DEFAULT_PAGE_SIZE
 from app.db.session import get_db
 from app.deps import get_current_parent
 from app.models.announcement import Announcement, announcement_classrooms
@@ -69,7 +70,7 @@ async def list_students(
 @router.get("/announcements", response_model=Page[ParentAnnouncementOut])
 async def list_announcements(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
     parent: ParentProfile = Depends(get_current_parent),
     db: AsyncSession = Depends(get_db),
 ) -> Page[ParentAnnouncementOut]:

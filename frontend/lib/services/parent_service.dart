@@ -1,3 +1,4 @@
+import '../config.dart';
 import '../models/announcement.dart';
 import '../models/paginated.dart';
 import '../models/parent.dart';
@@ -18,7 +19,7 @@ class ParentService {
     return (json as List).map((e) => ParentStudentListItem.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  static Future<Paginated<Announcement>> listAnnouncements({int page = 1, int pageSize = 20}) async {
+  static Future<Paginated<Announcement>> listAnnouncements({int page = 1, int pageSize = kDefaultPageSize}) async {
     final json = await ApiClient.get('/parent/announcements?page=$page&page_size=$pageSize');
     return Paginated.fromJson(json as Map<String, dynamic>, Announcement.fromJson);
   }

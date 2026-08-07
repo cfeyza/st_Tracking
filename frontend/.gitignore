@@ -50,12 +50,14 @@ lib/firebase_options.dart
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
+firebase.json
 **/*.env
 **/.env
 **/.env.*
 **/*serviceaccount*.json
 **/*service-account*.json
 **/*.p12
+**/*.p8
 **/*.jks
 **/*.keystore
 key.properties

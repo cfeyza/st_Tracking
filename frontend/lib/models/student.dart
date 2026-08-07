@@ -40,3 +40,17 @@ class TeacherCodeResponse {
     );
   }
 }
+
+class TeacherFilterItem {
+  final int id;
+  final String name;
+
+  TeacherFilterItem({required this.id, required this.name});
+
+  factory TeacherFilterItem.fromJson(Map<String, dynamic> json) {
+    return TeacherFilterItem(
+      id: json['id'] as int,
+      name: json['name'] as String,
+    );
+  }
+}

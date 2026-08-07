@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.constants import DEFAULT_PAGE_SIZE
 from app.db.session import get_db
 from app.deps import get_current_teacher
 from app.models.announcement import Announcement
@@ -89,7 +90,7 @@ async def create_classroom(
 @router.get("/classrooms", response_model=Page[ClassroomOut])
 async def list_classrooms(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> Page[ClassroomOut]:
@@ -303,7 +304,7 @@ async def list_students(
     sort_by: SortField = Query(default="classroom"),
     order: SortOrder = Query(default="asc"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> Page[StudentListItem]:
@@ -431,24 +432,30 @@ async def create_announcement(
     )
 
 
-@router.get("/announcements", response_model=list[AnnouncementOut])
+@router.get("/announcements", response_model=Page[AnnouncementOut])
 async def list_announcements(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
-) -> list[AnnouncementOut]:
+) -> Page[AnnouncementOut]:
+    total = await db.scalar(
+        select(func.count(Announcement.id)).where(Announcement.teacher_id == teacher.id)
+    )
     result = await db.execute(
         select(Announcement)
         .options(selectinload(Announcement.classrooms))
         .where(Announcement.teacher_id == teacher.id)
         .order_by(Announcement.created_at.desc())
+        .limit(page_size)
+        .offset((page - 1) * page_size)
     )
     announcements = result.scalars().all()
-    return [
-        AnnouncementOut(
-            id=a.id, text=a.text, created_at=a.created_at, classrooms=[c.name for c in a.classrooms]
-        )
+    items = [
+        AnnouncementOut(id=a.id, text=a.text, created_at=a.created_at, classrooms=[c.name for c in a.classrooms])
         for a in announcements
     ]
+    return Page.build(items=items, total=total or 0, page=page, page_size=page_size)
 
 
 @router.post("/grades", response_model=GradeOut, status_code=status.HTTP_201_CREATED)
@@ -516,7 +523,7 @@ async def list_grades(
     sort_by: GradeSortField = Query(default="date"),
     order: SortOrder = Query(default="desc"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> Page[GradeOut]:

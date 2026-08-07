@@ -17,3 +17,8 @@ class TeacherCodeRequest(BaseModel):
 class TeacherCodeResponse(BaseModel):
     teacher_name: str
     classrooms: list[str]
+
+
+class TeacherFilterItem(BaseModel):
+    id: int
+    name: str

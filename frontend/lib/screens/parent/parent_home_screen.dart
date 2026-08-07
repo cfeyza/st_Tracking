@@ -5,6 +5,7 @@ import '../../models/paginated.dart';
 import '../../services/api_client.dart';
 import '../../services/parent_service.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/pagination_bar.dart';
 
 class ParentHomeScreen extends StatefulWidget {
   const ParentHomeScreen({super.key});
@@ -102,7 +103,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                     },
                   ),
                 ),
-                _PaginationBar(page: result.page, totalPages: result.totalPages, onPageChange: _goToPage),
+                PaginationBar(page: result.page, totalPages: result.totalPages, onPageChange: _goToPage),
               ],
             );
           },
@@ -112,31 +113,3 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   }
 }
 
-class _PaginationBar extends StatelessWidget {
-  final int page;
-  final int totalPages;
-  final ValueChanged<int> onPageChange;
-
-  const _PaginationBar({required this.page, required this.totalPages, required this.onPageChange});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: page > 1 ? () => onPageChange(page - 1) : null,
-          ),
-          Text('Page $page of $totalPages'),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: page < totalPages ? () => onPageChange(page + 1) : null,
-          ),
-        ],
-      ),
-    );
-  }
-}

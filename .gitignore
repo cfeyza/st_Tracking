@@ -1,7 +1,14 @@
+# AI session context — local only, not for version control
+PROJECT_HISTORY.md
+PROJECT_CONTEXT.md
+
 # Secrets / credentials / API keys - never commit these
 *.env
 .env
 .env.*
+.env.local
+.env.production
+.env.staging
 **/.env
 **/.env.*
 *serviceaccount*.json
@@ -12,9 +19,26 @@ GoogleService-Info.plist
 *.pem
 *.key
 *.p12
+*.p8
 *.jks
 *.keystore
+*.cer
 key.properties
 *credentials*.json
 *secret*.json
-*.env.local
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db

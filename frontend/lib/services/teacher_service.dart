@@ -1,3 +1,4 @@
+import '../config.dart';
 import '../models/announcement.dart';
 import '../models/classroom.dart';
 import '../models/grade.dart';
@@ -16,14 +17,18 @@ class TeacherService {
     return TeacherDashboard.fromJson(json as Map<String, dynamic>);
   }
 
-  static Future<Paginated<ClassroomOut>> listClassrooms({int page = 1, int pageSize = 20}) async {
+  static Future<Paginated<ClassroomOut>> listClassrooms({int page = 1, int pageSize = kDefaultPageSize}) async {
     final json = await ApiClient.get('/teacher/classrooms?page=$page&page_size=$pageSize');
     return Paginated.fromJson(json as Map<String, dynamic>, ClassroomOut.fromJson);
   }
 
   static Future<List<ClassroomOut>> listAllClassrooms() async {
-    final page = await listClassrooms(page: 1, pageSize: 100);
-    return page.items;
+    final first = await listClassrooms(page: 1, pageSize: 100);
+    if (first.totalPages <= 1) return first.items;
+    final rest = await Future.wait([
+      for (int p = 2; p <= first.totalPages; p++) listClassrooms(page: p, pageSize: 100),
+    ]);
+    return [...first.items, for (final page in rest) ...page.items];
   }
 
   static Future<void> deleteClassroom(int classroomId) async {
@@ -60,7 +65,7 @@ class TeacherService {
     String sortBy = 'classroom',
     String order = 'asc',
     int page = 1,
-    int pageSize = 20,
+    int pageSize = kDefaultPageSize,
   }) async {
     final params = <String, String>{
       'sort_by': sortBy,
@@ -79,13 +84,17 @@ class TeacherService {
   }
 
   static Future<List<StudentListItem>> listAllStudents() async {
-    final page = await listStudents(page: 1, pageSize: 100);
-    return page.items;
+    final first = await listStudents(page: 1, pageSize: 100);
+    if (first.totalPages <= 1) return first.items;
+    final rest = await Future.wait([
+      for (int p = 2; p <= first.totalPages; p++) listStudents(page: p, pageSize: 100),
+    ]);
+    return [...first.items, for (final page in rest) ...page.items];
   }
 
-  static Future<List<Announcement>> listAnnouncements() async {
-    final json = await ApiClient.get('/teacher/announcements');
-    return (json as List).map((e) => Announcement.fromJson(e as Map<String, dynamic>)).toList();
+  static Future<Paginated<Announcement>> listAnnouncements({int page = 1, int pageSize = kDefaultPageSize}) async {
+    final json = await ApiClient.get('/teacher/announcements?page=$page&page_size=$pageSize');
+    return Paginated.fromJson(json as Map<String, dynamic>, Announcement.fromJson);
   }
 
   static Future<Announcement> createAnnouncement(String text, List<int> classroomIds) async {
@@ -102,7 +111,7 @@ class TeacherService {
     String sortBy = 'date',
     String order = 'desc',
     int page = 1,
-    int pageSize = 20,
+    int pageSize = kDefaultPageSize,
   }) async {
     final params = <String, String>{
       'sort_by': sortBy,

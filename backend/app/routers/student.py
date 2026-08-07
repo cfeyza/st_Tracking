@@ -145,19 +145,44 @@ async def list_announcements(
     return Page.build(items=items, total=total or 0, page=page, page_size=page_size)
 
 
-@router.get("/grades", response_model=list[GradeOut])
-async def list_grades(
+@router.get("/grade-teachers", response_model=list[TeacherFilterItem])
+async def list_grade_teachers(
     student: StudentProfile = Depends(get_current_student),
     db: AsyncSession = Depends(get_db),
-) -> list[GradeOut]:
+) -> list[TeacherFilterItem]:
+    result = await db.execute(
+        select(TeacherProfile)
+        .join(Grade, Grade.teacher_id == TeacherProfile.id)
+        .where(Grade.student_id == student.id)
+        .distinct()
+        .order_by(TeacherProfile.name, TeacherProfile.surname)
+    )
+    teachers = result.scalars().unique().all()
+    return [TeacherFilterItem(id=t.id, name=f"{t.name} {t.surname}") for t in teachers]
+
+
+@router.get("/grades", response_model=Page[GradeOut])
+async def list_grades(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
+    teacher_id: int | None = Query(default=None),
+    student: StudentProfile = Depends(get_current_student),
+    db: AsyncSession = Depends(get_db),
+) -> Page[GradeOut]:
+    filters = [Grade.student_id == student.id]
+    if teacher_id is not None:
+        filters.append(Grade.teacher_id == teacher_id)
+    total = await db.scalar(select(func.count(Grade.id)).where(*filters))
     result = await db.execute(
         select(Grade)
         .options(selectinload(Grade.classroom), selectinload(Grade.teacher))
-        .where(Grade.student_id == student.id)
+        .where(*filters)
         .order_by(Grade.created_at.desc())
+        .limit(page_size)
+        .offset((page - 1) * page_size)
     )
     grades = result.scalars().all()
-    return [
+    items = [
         GradeOut(
             id=g.id,
             subject=g.subject,
@@ -169,3 +194,4 @@ async def list_grades(
         )
         for g in grades
     ]
+    return Page.build(items=items, total=total or 0, page=page, page_size=page_size)

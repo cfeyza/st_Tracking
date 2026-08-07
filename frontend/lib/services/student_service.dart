@@ -36,8 +36,23 @@ class StudentService {
     return Paginated.fromJson(json as Map<String, dynamic>, Announcement.fromJson);
   }
 
-  static Future<List<Grade>> listGrades() async {
-    final json = await ApiClient.get('/student/grades');
-    return (json as List).map((e) => Grade.fromJson(e as Map<String, dynamic>)).toList();
+  static Future<List<TeacherFilterItem>> listGradeTeachers() async {
+    final json = await ApiClient.get('/student/grade-teachers');
+    return (json as List).map((e) => TeacherFilterItem.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  static Future<Paginated<Grade>> listGrades({
+    int page = 1,
+    int pageSize = kDefaultPageSize,
+    int? teacherId,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'page_size': pageSize.toString(),
+    };
+    if (teacherId != null) params['teacher_id'] = teacherId.toString();
+    final query = Uri(queryParameters: params).query;
+    final json = await ApiClient.get('/student/grades?$query');
+    return Paginated.fromJson(json as Map<String, dynamic>, Grade.fromJson);
   }
 }

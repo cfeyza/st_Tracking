@@ -64,6 +64,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
     final textController = TextEditingController();
     final selected = <int>{};
+    var isSending = false;
     final posted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -71,54 +72,71 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
               title: const Text('New announcement'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: textController,
-                      decoration: const InputDecoration(labelText: 'Announcement text'),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text('Target classroom(s)'),
-                    for (final classroom in classrooms)
-                      CheckboxListTile(
-                        dense: true,
-                        title: Text(classroom.name),
-                        value: selected.contains(classroom.id),
-                        onChanged: (checked) => setDialogState(() {
-                          if (checked == true) {
-                            selected.add(classroom.id);
-                          } else {
-                            selected.remove(classroom.id);
-                          }
-                        }),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: textController,
+                        decoration: const InputDecoration(labelText: 'Announcement text'),
+                        maxLines: null,
+                        minLines: 3,
+                        maxLength: 500,
                       ),
-                  ],
+                      const SizedBox(height: 12),
+                      const Text('Target classroom(s)'),
+                      for (final classroom in classrooms)
+                        CheckboxListTile(
+                          dense: true,
+                          title: Text(classroom.name),
+                          value: selected.contains(classroom.id),
+                          onChanged: isSending
+                              ? null
+                              : (checked) => setDialogState(() {
+                                    if (checked == true) {
+                                      selected.add(classroom.id);
+                                    } else {
+                                      selected.remove(classroom.id);
+                                    }
+                                  }),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: isSending ? null : () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
                 FilledButton(
-                  onPressed: () async {
-                    if (textController.text.trim().isEmpty || selected.isEmpty) {
-                      ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(content: Text('Enter text and pick at least one classroom.')),
-                      );
-                      return;
-                    }
-                    try {
-                      await TeacherService.createAnnouncement(textController.text.trim(), selected.toList());
-                      if (dialogContext.mounted) Navigator.pop(dialogContext, true);
-                    } on ApiException catch (e) {
-                      if (dialogContext.mounted) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.message)));
-                      }
-                    }
-                  },
-                  child: const Text('Post'),
+                  onPressed: isSending
+                      ? null
+                      : () async {
+                          if (isSending) return;
+                          if (textController.text.trim().isEmpty || selected.isEmpty) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              const SnackBar(content: Text('Enter text and pick at least one classroom.')),
+                            );
+                            return;
+                          }
+                          setDialogState(() => isSending = true);
+                          try {
+                            await TeacherService.createAnnouncement(textController.text.trim(), selected.toList());
+                            if (dialogContext.mounted) Navigator.pop(dialogContext, true);
+                          } on ApiException catch (e) {
+                            if (dialogContext.mounted) {
+                              setDialogState(() => isSending = false);
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(e.message)));
+                            }
+                          }
+                        },
+                  child: isSending
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Post'),
                 ),
               ],
             );

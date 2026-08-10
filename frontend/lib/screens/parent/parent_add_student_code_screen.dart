@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../services/api_client.dart';
 import '../../services/parent_service.dart';
@@ -21,7 +22,8 @@ class _ParentAddStudentCodeScreenState extends State<ParentAddStudentCodeScreen>
     try {
       await ParentService.addStudentCode(code);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student linked.')));
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.studentLinked)));
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -33,18 +35,19 @@ class _ParentAddStudentCodeScreenState extends State<ParentAddStudentCodeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Add student code')),
+      appBar: AppBar(title: Text(l10n.addStudentCode)),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text("Enter your child's student code (found on their profile page)."),
+            Text(l10n.enterChildStudentCode),
             const SizedBox(height: 16),
             TextField(
               controller: _codeController,
-              decoration: const InputDecoration(labelText: 'Student code'),
+              decoration: InputDecoration(labelText: l10n.studentCodeLabel),
               textCapitalization: TextCapitalization.characters,
             ),
             const SizedBox(height: 24),
@@ -52,7 +55,7 @@ class _ParentAddStudentCodeScreenState extends State<ParentAddStudentCodeScreen>
               onPressed: _loading ? null : _submit,
               child: _loading
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Add'),
+                  : Text(l10n.add),
             ),
           ],
         ),

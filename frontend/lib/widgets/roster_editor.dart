@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../models/classroom.dart';
 
@@ -25,6 +26,7 @@ class RosterEditorController {
   /// Returns the entered rows, or null (and shows a snackbar) if any row is
   /// incomplete.
   List<RosterStudentIn>? collect(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final rows = _state?._rows ?? [];
     final result = <RosterStudentIn>[];
     for (final row in rows) {
@@ -34,14 +36,14 @@ class RosterEditorController {
       if (name.isEmpty && surname.isEmpty && schoolIdText.isEmpty) continue;
       if (name.isEmpty || surname.isEmpty || schoolIdText.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fill in name, surname, and school ID for every roster row (or remove it).')),
+          SnackBar(content: Text(l10n.fillInAllRosterFields)),
         );
         return null;
       }
       final schoolId = int.tryParse(schoolIdText);
       if (schoolId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('School ID must be a number.')),
+          SnackBar(content: Text(l10n.schoolIdMustBeNumberRoster)),
         );
         return null;
       }
@@ -66,14 +68,15 @@ class _RosterEditorState extends State<RosterEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Text('Students', style: Theme.of(context).textTheme.titleMedium),
+            Text(l10n.studentsSection, style: Theme.of(context).textTheme.titleMedium),
             const Spacer(),
-            TextButton.icon(onPressed: _addRow, icon: const Icon(Icons.add), label: const Text('Add row')),
+            TextButton.icon(onPressed: _addRow, icon: const Icon(Icons.add), label: Text(l10n.addRow)),
           ],
         ),
         for (int i = 0; i < _rows.length; i++)
@@ -84,21 +87,21 @@ class _RosterEditorState extends State<RosterEditor> {
                 Expanded(
                   child: TextField(
                     controller: _rows[i].nameController,
-                    decoration: const InputDecoration(labelText: 'Name', isDense: true),
+                    decoration: InputDecoration(labelText: l10n.name, isDense: true),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _rows[i].surnameController,
-                    decoration: const InputDecoration(labelText: 'Surname', isDense: true),
+                    decoration: InputDecoration(labelText: l10n.surname, isDense: true),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _rows[i].schoolIdController,
-                    decoration: const InputDecoration(labelText: 'School ID', isDense: true),
+                    decoration: InputDecoration(labelText: l10n.schoolId, isDense: true),
                     keyboardType: TextInputType.number,
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/classroom.dart';
 import '../../models/grade.dart';
@@ -7,12 +8,12 @@ import '../../models/teacher.dart';
 import '../../services/api_client.dart';
 import '../../services/teacher_service.dart';
 
-const _sortOptions = {
-  'date': 'Date',
-  'student': 'Student',
-  'subject': 'Subject',
-  'value': 'Grade',
-  'classroom': 'Classroom',
+Map<String, String> _buildSortOptions(AppLocalizations l10n) => {
+  'date': l10n.date,
+  'student': l10n.student,
+  'subject': l10n.subject,
+  'value': l10n.grade,
+  'classroom': l10n.classroom,
 };
 
 class TeacherGradesScreen extends StatefulWidget {
@@ -95,10 +96,12 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final sortOptions = _buildSortOptions(l10n);
     final studentName = _selectedStudentLabel;
     return Scaffold(
       appBar: AppBar(
-        title: Text(studentName == null ? 'Grades' : 'Grades — $studentName'),
+        title: Text(studentName == null ? l10n.grades : l10n.gradesWithStudent(studentName)),
       ),
       body: Column(
         children: [
@@ -111,9 +114,9 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
               children: [
                 DropdownButton<int?>(
                   value: _students.any((s) => s.id == _studentId) ? _studentId : null,
-                  hint: const Text('Filter: all students'),
+                  hint: Text(l10n.filterAllStudents),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('All students')),
+                    DropdownMenuItem(value: null, child: Text(l10n.allStudents)),
                     for (final s in _students)
                       DropdownMenuItem(value: s.id, child: Text('${s.name} ${s.surname}')),
                   ],
@@ -124,9 +127,9 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
                 ),
                 DropdownButton<int?>(
                   value: _classrooms.any((c) => c.id == _classroomId) ? _classroomId : null,
-                  hint: const Text('Filter: all classrooms'),
+                  hint: Text(l10n.filterAllClassrooms),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('All classrooms')),
+                    DropdownMenuItem(value: null, child: Text(l10n.allClassrooms)),
                     for (final c in _classrooms) DropdownMenuItem(value: c.id, child: Text(c.name)),
                   ],
                   onChanged: (value) {
@@ -137,8 +140,8 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
                 DropdownButton<String>(
                   value: sortBy,
                   items: [
-                    for (final entry in _sortOptions.entries)
-                      DropdownMenuItem(value: entry.key, child: Text('Sort: ${entry.value}')),
+                    for (final entry in sortOptions.entries)
+                      DropdownMenuItem(value: entry.key, child: Text(l10n.sortBy(entry.value))),
                   ],
                   onChanged: (value) {
                     sortBy = value!;
@@ -146,7 +149,7 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
                   },
                 ),
                 IconButton(
-                  tooltip: order == 'asc' ? 'Ascending' : 'Descending',
+                  tooltip: order == 'asc' ? l10n.ascending : l10n.descending,
                   icon: Icon(order == 'asc' ? Icons.arrow_upward : Icons.arrow_downward),
                   onPressed: () {
                     order = order == 'asc' ? 'desc' : 'asc';
@@ -170,7 +173,7 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
                 final result = snapshot.data!;
                 final grades = result.items;
                 if (grades.isEmpty) {
-                  return const Center(child: Text('No grades found.'));
+                  return Center(child: Text(l10n.noGradesFound));
                 }
                 return Column(
                   children: [
@@ -179,12 +182,12 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
-                            columns: const [
-                              DataColumn(label: Text('Student')),
-                              DataColumn(label: Text('Subject')),
-                              DataColumn(label: Text('Grade')),
-                              DataColumn(label: Text('Classroom')),
-                              DataColumn(label: Text('Date')),
+                            columns: [
+                              DataColumn(label: Text(l10n.student)),
+                              DataColumn(label: Text(l10n.subject)),
+                              DataColumn(label: Text(l10n.grade)),
+                              DataColumn(label: Text(l10n.classroom)),
+                              DataColumn(label: Text(l10n.date)),
                             ],
                             rows: [
                               for (final g in grades)
@@ -221,6 +224,7 @@ class _PaginationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -230,7 +234,7 @@ class _PaginationBar extends StatelessWidget {
             icon: const Icon(Icons.chevron_left),
             onPressed: page > 1 ? () => onPageChange(page - 1) : null,
           ),
-          Text('Page $page of $totalPages'),
+          Text(l10n.pageXofY(page, totalPages)),
           IconButton(
             icon: const Icon(Icons.chevron_right),
             onPressed: page < totalPages ? () => onPageChange(page + 1) : null,

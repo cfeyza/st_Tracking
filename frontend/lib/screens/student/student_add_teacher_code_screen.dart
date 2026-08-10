@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../services/api_client.dart';
 import '../../services/student_service.dart';
@@ -21,17 +22,18 @@ class _StudentAddTeacherCodeScreenState extends State<StudentAddTeacherCodeScree
     try {
       final result = await StudentService.addTeacherCode(code);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Linked to ${result.teacherName}'),
+          title: Text(l10n.linkedToTeacher(result.teacherName)),
           content: Text(
             result.classrooms.isEmpty
-                ? "You're now linked to this teacher."
-                : "You've been added to: ${result.classrooms.join(", ")}",
+                ? l10n.nowLinkedToTeacher
+                : l10n.addedToClassrooms(result.classrooms.join(', ')),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.ok)),
           ],
         ),
       );
@@ -46,22 +48,19 @@ class _StudentAddTeacherCodeScreenState extends State<StudentAddTeacherCodeScree
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Add teacher code')),
+      appBar: AppBar(title: Text(l10n.addTeacherCode)),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Enter the code your teacher gave you. You must already be on that '
-              'teacher\'s classroom roster (matched by your name, surname, and school ID) '
-              'for this to work.',
-            ),
+            Text(l10n.enterTeacherCodeInstruction),
             const SizedBox(height: 16),
             TextField(
               controller: _codeController,
-              decoration: const InputDecoration(labelText: 'Teacher code'),
+              decoration: InputDecoration(labelText: l10n.teacherCodeLabel),
               textCapitalization: TextCapitalization.characters,
             ),
             const SizedBox(height: 24),
@@ -69,7 +68,7 @@ class _StudentAddTeacherCodeScreenState extends State<StudentAddTeacherCodeScree
               onPressed: _loading ? null : _submit,
               child: _loading
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Add'),
+                  : Text(l10n.add),
             ),
           ],
         ),

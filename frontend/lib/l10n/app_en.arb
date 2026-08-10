@@ -1,0 +1,256 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Student Tracking App",
+
+  "logIn": "Log in",
+  "logOut": "Log out",
+  "register": "Register",
+  "cancel": "Cancel",
+  "add": "Add",
+  "ok": "OK",
+  "post": "Post",
+  "delete": "Delete",
+  "remove": "Remove",
+
+  "email": "Email",
+  "password": "Password",
+  "name": "Name",
+  "surname": "Surname",
+  "schoolId": "School ID",
+  "teacherCode": "Teacher code",
+  "studentCode": "Student code",
+  "classroom": "Classroom",
+  "student": "Student",
+  "teacher": "Teacher",
+  "parent": "Parent",
+  "date": "Date",
+  "subject": "Subject",
+  "grade": "Grade",
+  "status": "Status",
+  "registered": "Registered",
+  "pending": "Pending",
+  "ascending": "Ascending",
+  "descending": "Descending",
+  "announcements": "Announcements",
+  "classrooms": "Classrooms",
+  "students": "Students",
+  "grades": "Grades",
+  "profile": "Profile",
+
+  "emailRequired": "Email is required",
+  "passwordRequired": "Password is required",
+  "nameRequired": "Name is required",
+  "surnameRequired": "Surname is required",
+  "schoolIdRequired": "School ID is required",
+  "schoolIdMustBeNumber": "School ID must be a number",
+  "passwordMinLength": "Password must be at least 8 characters",
+  "schoolIdHelperText": "Your teacher uses this to match you to their class roster",
+
+  "iAmA": "I am a",
+
+  "dontHaveAccount": "Don't have an account? Register",
+  "alreadyHaveAccount": "Already have an account? Log in",
+  "registrationSuccess": "Registration successful! Check your email to verify your account, then log in.",
+
+  "copiedToClipboard": "{label} copied to clipboard",
+  "@copiedToClipboard": {
+    "placeholders": {
+      "label": { "type": "String" }
+    }
+  },
+
+  "pageXofY": "Page {page} of {totalPages}",
+  "@pageXofY": {
+    "placeholders": {
+      "page": { "type": "int" },
+      "totalPages": { "type": "int" }
+    }
+  },
+
+  "myGrades": "My grades",
+  "myStudents": "My students",
+  "myClassrooms": "My classrooms",
+
+  "gradesWithStudent": "Grades — {studentName}",
+  "@gradesWithStudent": {
+    "placeholders": {
+      "studentName": { "type": "String" }
+    }
+  },
+
+  "myStudentsWithClassroom": "My students — {classroomName}",
+  "@myStudentsWithClassroom": {
+    "placeholders": {
+      "classroomName": { "type": "String" }
+    }
+  },
+
+  "addTeacherCode": "Add teacher code",
+  "addStudentCode": "Add student code",
+  "addClassroom": "Add classroom",
+  "addGrades": "Add grades",
+  "addGrade": "Add grade",
+  "addToRoster": "Add to roster",
+  "createClassroom": "Create classroom",
+  "newClassroom": "New classroom",
+  "existingClassroom": "Existing classroom",
+
+  "noAnnouncementsYet": "No announcements yet.",
+  "noGradesYet": "No grades yet.",
+  "noGradesFound": "No grades found.",
+  "noStudentsFound": "No students found.",
+  "noClassroomsYet": "No classrooms yet. Tap + to add one.",
+  "noStudentsLinked": "No students linked yet. Tap + to add one.",
+  "noExistingClassrooms": "You have no classrooms yet. Create a new one instead.",
+
+  "newAnnouncement": "New announcement",
+  "announcementText": "Announcement text",
+  "targetClassrooms": "Target classroom(s)",
+  "enterTextAndPickClassroom": "Enter text and pick at least one classroom.",
+  "addClassroomFirst": "Add a classroom first before posting an announcement.",
+
+  "parentAnnouncementMeta": "For {studentName} · {teacherName} · {classrooms}",
+  "@parentAnnouncementMeta": {
+    "placeholders": {
+      "studentName": { "type": "String" },
+      "teacherName": { "type": "String" },
+      "classrooms": { "type": "String" }
+    }
+  },
+
+  "deleteClassroomTooltip": "Delete classroom",
+  "deleteClassroomTitle": "Delete classroom?",
+  "deleteClassroomConfirm": "This removes '{name}'. Students who are in that classroom will also be removed from your student list; their records aren't deleted.",
+  "@deleteClassroomConfirm": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "deletedClassroom": "Deleted '{name}'.",
+  "@deletedClassroom": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "studentCount": "{count, plural, =1{1 student} other{{count} students}}",
+  "@studentCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "classroomNameLabel": "Classroom name (e.g. 5A)",
+  "addStudentsHelper": "Add students to this classroom by name, surname, and school ID. You never need to place them into the right classroom afterward — this is it.",
+  "pdfImportHelper": "Or import one or more classrooms straight from an e-Okul class-list PDF — the classroom and section are read from the file, so the fields above aren't used for this.",
+  "importing": "Importing…",
+  "importFromPdf": "Import from PDF",
+  "importSummary": "Import summary",
+  "noClassroomsInPdf": "No classrooms could be read from this PDF.",
+  "importNew": "new",
+  "importExisting": "existing",
+
+  "importStudentsAdded": "{count, plural, =1{1 student added} other{{count} students added}}",
+  "@importStudentsAdded": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "importSkipped": ", {count} skipped (already in your roster)",
+  "@importSkipped": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "importIssues": "Issues:",
+  "chooseClassroom": "Choose a classroom.",
+  "rosterUpdated": "Roster updated.",
+  "classroomNameRequired": "Classroom name is required.",
+
+  "classroomAlreadyExists": "A classroom named '{name}' already exists. Pick it from the existing classrooms list instead.",
+  "@classroomAlreadyExists": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+
+  "classroomCreated": "Classroom created.",
+
+  "filterAllStudents": "Filter: all students",
+  "allStudents": "All students",
+  "filterAllClassrooms": "Filter: all classrooms",
+  "allClassrooms": "All classrooms",
+  "filterByTeacher": "Filter by teacher",
+  "allTeachers": "All teachers",
+
+  "sortBy": "Sort: {value}",
+  "@sortBy": {
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
+
+  "removeStudentTooltip": "Remove student",
+  "removeStudentTitle": "Remove student?",
+  "removeStudentConfirm": "{studentName} will be removed from all of your classrooms and your roster. Their record and grade history are kept, and other teachers or parents linked to them are unaffected.",
+  "@removeStudentConfirm": {
+    "placeholders": {
+      "studentName": { "type": "String" }
+    }
+  },
+  "removedStudent": "Removed {studentName}.",
+  "@removedStudent": {
+    "placeholders": {
+      "studentName": { "type": "String" }
+    }
+  },
+
+  "classroomsColumn": "Classroom(s)",
+
+  "enterTeacherCodeInstruction": "Enter the code your teacher gave you. You must already be on that teacher's classroom roster (matched by your name, surname, and school ID) for this to work.",
+  "teacherCodeLabel": "Teacher code",
+  "linkedToTeacher": "Linked to {teacherName}",
+  "@linkedToTeacher": {
+    "placeholders": {
+      "teacherName": { "type": "String" }
+    }
+  },
+  "nowLinkedToTeacher": "You're now linked to this teacher.",
+  "addedToClassrooms": "You've been added to: {classrooms}",
+  "@addedToClassrooms": {
+    "placeholders": {
+      "classrooms": { "type": "String" }
+    }
+  },
+
+  "enterChildStudentCode": "Enter your child's student code (found on their profile page).",
+  "studentCodeLabel": "Student code",
+  "studentLinked": "Student linked.",
+  "schoolIdValue": "School ID: {id}",
+  "@schoolIdValue": {
+    "placeholders": {
+      "id": { "type": "String" }
+    }
+  },
+
+  "fillInAllRosterFields": "Fill in name, surname, and school ID for every roster row (or remove it).",
+  "schoolIdMustBeNumberRoster": "School ID must be a number.",
+  "studentsSection": "Students",
+  "addRow": "Add row",
+
+  "enterManually": "Enter manually",
+  "pickClassroomAndStudentGradeHint": "Pick a classroom and student, then type in the grade.",
+  "scanOpticForm": "Scan optic form",
+  "readExamSheet": "Read exam sheet",
+
+  "selectClassroomFirst": "Select a classroom first",
+  "subjectLabel": "Subject (e.g. Math)",
+  "gradeValueLabel": "Grade (e.g. 85 or A-)",
+  "pickClassroomAndStudentGradeError": "Pick a classroom and student, and fill in subject and grade.",
+  "gradeAdded": "Grade added.",
+
+  "comingSoon": "Coming soon"
+}

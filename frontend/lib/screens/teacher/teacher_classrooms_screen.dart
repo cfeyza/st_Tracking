@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/classroom.dart';
 import '../../models/paginated.dart';
@@ -36,25 +37,27 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
   }
 
   Future<void> _confirmDelete(ClassroomOut classroom) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete classroom?'),
-        content: Text(
-          "This removes '${classroom.name}'. Students who are in that classroom will also be removed from your student list; their records aren't deleted.",
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Delete')),
-        ],
-      ),
+      builder: (dialogContext) {
+        final dl10n = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          title: Text(dl10n.deleteClassroomTitle),
+          content: Text(dl10n.deleteClassroomConfirm(classroom.name)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(dl10n.cancel)),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(dl10n.delete)),
+          ],
+        );
+      },
     );
     if (confirmed != true) return;
 
     try {
       await TeacherService.deleteClassroom(classroom.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Deleted '${classroom.name}'.")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.deletedClassroom(classroom.name))));
       if (_page > 1) _page = 1;
       _reload();
     } on ApiException catch (e) {
@@ -65,8 +68,9 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('My classrooms')),
+      appBar: AppBar(title: Text(l10n.myClassrooms)),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.of(context).pushNamed('/teacher/add-classroom');
@@ -86,7 +90,7 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
           final result = snapshot.data!;
           final classrooms = result.items;
           if (classrooms.isEmpty) {
-            return const Center(child: Text('No classrooms yet. Tap + to add one.'));
+            return Center(child: Text(l10n.noClassroomsYet));
           }
           return Column(
             children: [
@@ -98,12 +102,12 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
                     final classroom = classrooms[index];
                     return ListTile(
                       title: Text(classroom.name),
-                      subtitle: Text('${classroom.studentCount} student(s)'),
+                      subtitle: Text(l10n.studentCount(classroom.studentCount)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: 'Delete classroom',
+                            tooltip: l10n.deleteClassroomTooltip,
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () => _confirmDelete(classroom),
                           ),
@@ -136,6 +140,7 @@ class _PaginationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -145,7 +150,7 @@ class _PaginationBar extends StatelessWidget {
             icon: const Icon(Icons.chevron_left),
             onPressed: page > 1 ? () => onPageChange(page - 1) : null,
           ),
-          Text('Page $page of $totalPages'),
+          Text(l10n.pageXofY(page, totalPages)),
           IconButton(
             icon: const Icon(Icons.chevron_right),
             onPressed: page < totalPages ? () => onPageChange(page + 1) : null,

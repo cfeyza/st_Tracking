@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/teacher.dart';
 import '../../services/api_client.dart';
@@ -23,8 +24,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l10n.profile)),
       body: FutureBuilder<TeacherProfile>(
         future: _future,
         builder: (context, snapshot) {
@@ -48,10 +50,10 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                       child: Icon(Icons.person, size: 56),
                     ),
                     const SizedBox(height: 24),
-                    _ProfileField(label: 'Teacher code', value: teacher.teacherCode, copyable: true),
-                    _ProfileField(label: 'Name', value: teacher.name),
-                    _ProfileField(label: 'Surname', value: teacher.surname),
-                    _ProfileField(label: 'Email', value: teacher.email),
+                    _ProfileField(label: l10n.teacherCode, value: teacher.teacherCode, copyable: true),
+                    _ProfileField(label: l10n.name, value: teacher.name),
+                    _ProfileField(label: l10n.surname, value: teacher.surname),
+                    _ProfileField(label: l10n.email, value: teacher.email),
                   ],
                 ),
               ),
@@ -71,9 +73,10 @@ class _ProfileField extends StatelessWidget {
   const _ProfileField({required this.label, required this.value, this.copyable = false});
 
   void _copy(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     Clipboard.setData(ClipboardData(text: value));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label copied to clipboard')),
+      SnackBar(content: Text(l10n.copiedToClipboard(label))),
     );
   }
 

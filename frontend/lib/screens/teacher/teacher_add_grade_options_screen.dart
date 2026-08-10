@@ -1,33 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 class TeacherAddGradeOptionsScreen extends StatelessWidget {
   const TeacherAddGradeOptionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Add grades')),
+      appBar: AppBar(title: Text(l10n.addGrades)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _OptionTile(
             icon: Icons.edit_note,
-            title: 'Enter manually',
-            subtitle: 'Pick a classroom and student, then type in the grade.',
+            title: l10n.enterManually,
+            subtitle: l10n.pickClassroomAndStudentGradeHint,
             onTap: () => Navigator.of(context).pushNamed('/teacher/add-grade'),
           ),
           const SizedBox(height: 12),
-          const _OptionTile(
+          _OptionTile(
             icon: Icons.qr_code_scanner,
-            title: 'Scan optic form',
-            subtitle: 'Coming soon',
+            title: l10n.scanOpticForm,
+            subtitle: l10n.comingSoon,
             enabled: false,
           ),
           const SizedBox(height: 12),
-          const _OptionTile(
+          _OptionTile(
             icon: Icons.document_scanner_outlined,
-            title: 'Read exam sheet',
-            subtitle: 'Coming soon',
+            title: l10n.readExamSheet,
+            subtitle: l10n.comingSoon,
             enabled: false,
           ),
         ],

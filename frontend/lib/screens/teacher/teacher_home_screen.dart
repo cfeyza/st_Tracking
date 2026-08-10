@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/announcement.dart';
 import '../../models/classroom.dart';
@@ -46,6 +47,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   }
 
   Future<void> _openAddAnnouncementDialog() async {
+    final l10n = AppLocalizations.of(context);
     List<ClassroomOut> classrooms;
     try {
       classrooms = await TeacherService.listAllClassrooms();
@@ -57,7 +59,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     if (!mounted) return;
     if (classrooms.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add a classroom first before posting an announcement.')),
+        SnackBar(content: Text(l10n.addClassroomFirst)),
       );
       return;
     }
@@ -70,8 +72,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
+            final dl10n = AppLocalizations.of(dialogContext);
             return AlertDialog(
-              title: const Text('New announcement'),
+              title: Text(dl10n.newAnnouncement),
               content: SizedBox(
                 width: double.maxFinite,
                 child: SingleChildScrollView(
@@ -81,13 +84,13 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                     children: [
                       TextField(
                         controller: textController,
-                        decoration: const InputDecoration(labelText: 'Announcement text'),
+                        decoration: InputDecoration(labelText: dl10n.announcementText),
                         maxLines: null,
                         minLines: 3,
                         maxLength: 500,
                       ),
                       const SizedBox(height: 12),
-                      const Text('Target classroom(s)'),
+                      Text(dl10n.targetClassrooms),
                       for (final classroom in classrooms)
                         CheckboxListTile(
                           dense: true,
@@ -110,7 +113,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               actions: [
                 TextButton(
                   onPressed: isSending ? null : () => Navigator.pop(dialogContext, false),
-                  child: const Text('Cancel'),
+                  child: Text(dl10n.cancel),
                 ),
                 FilledButton(
                   onPressed: isSending
@@ -119,7 +122,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           if (isSending) return;
                           if (textController.text.trim().isEmpty || selected.isEmpty) {
                             ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(content: Text('Enter text and pick at least one classroom.')),
+                              SnackBar(content: Text(dl10n.enterTextAndPickClassroom)),
                             );
                             return;
                           }
@@ -136,7 +139,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                         },
                   child: isSending
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Post'),
+                      : Text(dl10n.post),
                 ),
               ],
             );
@@ -150,17 +153,17 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Teacher')),
+      appBar: AppBar(title: Text(l10n.teacher)),
       drawer: AppDrawer(
         onProfileTap: () => Navigator.of(context).pushNamed('/teacher/profile'),
         actions: [
           DrawerAction(
             icon: Icons.add_box_outlined,
-            label: 'Add classroom',
+            label: l10n.addClassroom,
             onTap: () async {
-              final result =
-                  await Navigator.of(context).pushNamed('/teacher/add-classroom');
+              final result = await Navigator.of(context).pushNamed('/teacher/add-classroom');
               if (result == true) {
                 _refresh();
               }
@@ -168,12 +171,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           ),
           DrawerAction(
             icon: Icons.grade_outlined,
-            label: 'Add grades',
+            label: l10n.addGrades,
             onTap: () => Navigator.of(context).pushNamed('/teacher/add-grade-options'),
           ),
           DrawerAction(
             icon: Icons.list_alt,
-            label: 'Grades',
+            label: l10n.grades,
             onTap: () => Navigator.of(context).pushNamed('/teacher/grades'),
           ),
         ],
@@ -198,7 +201,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                   children: [
                     Expanded(
                       child: _CountCircle(
-                        label: 'Classrooms',
+                        label: l10n.classrooms,
                         count: dashboard.classroomCount,
                         onTap: () {
                           Navigator.of(context)
@@ -210,7 +213,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _CountCircle(
-                        label: 'Students',
+                        label: l10n.students,
                         count: dashboard.studentCount,
                         onTap: () {
                           Navigator.of(context)
@@ -227,7 +230,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       ListTile(
-                        title: const Text('Announcements', style: TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(l10n.announcements, style: const TextStyle(fontWeight: FontWeight.bold)),
                         trailing: IconButton(
                           icon: const Icon(Icons.add_circle),
                           onPressed: _openAddAnnouncementDialog,
@@ -235,9 +238,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       ),
                       const Divider(height: 1),
                       if (result.total == 0)
-                        const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('No announcements yet.'),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(l10n.noAnnouncementsYet),
                         ),
                       for (final a in announcements)
                         ListTile(

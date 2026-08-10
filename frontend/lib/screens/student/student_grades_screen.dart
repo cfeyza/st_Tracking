@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/grade.dart';
 import '../../models/paginated.dart';
@@ -49,9 +50,10 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final showFilter = _teachers != null && _teachers!.length > 1;
     return Scaffold(
-      appBar: AppBar(title: const Text('My grades')),
+      appBar: AppBar(title: Text(l10n.myGrades)),
       body: Column(
         children: [
           if (showFilter)
@@ -59,13 +61,13 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: DropdownButtonFormField<int?>(
                 value: _selectedTeacherId,
-                decoration: const InputDecoration(
-                  labelText: 'Filter by teacher',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.filterByTeacher,
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('All teachers')),
+                  DropdownMenuItem(value: null, child: Text(l10n.allTeachers)),
                   for (final t in _teachers!)
                     DropdownMenuItem(value: t.id, child: Text(t.name)),
                 ],
@@ -85,7 +87,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                 final result = snapshot.data!;
                 final grades = result.items;
                 if (result.total == 0) {
-                  return const Center(child: Text('No grades yet.'));
+                  return Center(child: Text(l10n.noGradesYet));
                 }
                 return Column(
                   children: [

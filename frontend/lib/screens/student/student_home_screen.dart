@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 import 'package:student_tracking_app/services/fcm_service.dart';
 import 'dart:async';
 import '../../models/announcement.dart';
@@ -72,15 +73,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final showFilter = _teachers != null && _teachers!.length > 1;
     return Scaffold(
-      appBar: AppBar(title: const Text('Student')),
+      appBar: AppBar(title: Text(l10n.student)),
       drawer: AppDrawer(
         onProfileTap: () => Navigator.of(context).pushNamed('/student/profile'),
         actions: [
           DrawerAction(
             icon: Icons.qr_code,
-            label: 'Add teacher code',
+            label: l10n.addTeacherCode,
             onTap: () async {
               await Navigator.of(context).pushNamed('/student/add-teacher-code');
               _refresh();
@@ -88,7 +90,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
           DrawerAction(
             icon: Icons.grade_outlined,
-            label: 'My grades',
+            label: l10n.myGrades,
             onTap: () => Navigator.of(context).pushNamed('/student/grades'),
           ),
         ],
@@ -100,13 +102,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: DropdownButtonFormField<int?>(
                 value: _selectedTeacherId,
-                decoration: const InputDecoration(
-                  labelText: 'Filter by teacher',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.filterByTeacher,
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('All teachers')),
+                  DropdownMenuItem(value: null, child: Text(l10n.allTeachers)),
                   for (final t in _teachers!)
                     DropdownMenuItem(value: t.id, child: Text(t.name)),
                 ],
@@ -133,8 +135,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   final result = snapshot.data!;
                   final announcements = result.items;
                   if (result.total == 0) {
-                    return ListView(children: const [
-                      Padding(padding: EdgeInsets.all(24), child: Text('No announcements yet.')),
+                    return ListView(children: [
+                      Padding(padding: const EdgeInsets.all(24), child: Text(l10n.noAnnouncementsYet)),
                     ]);
                   }
                   return Column(

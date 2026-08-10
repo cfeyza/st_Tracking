@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/language_button.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -33,10 +35,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         schoolId: _role == 'student' ? int.parse(_schoolIdController.text.trim()) : null,
       );
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration successful! Check your email to verify your account, then log in.'),
-          duration: Duration(seconds: 6),
+        SnackBar(
+          content: Text(l10n.registrationSuccess),
+          duration: const Duration(seconds: 6),
         ),
       );
       _formKey.currentState!.reset();
@@ -57,8 +60,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: Text(l10n.register), actions: const [LanguageButton()]),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -71,40 +75,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: _role,
-                    decoration: const InputDecoration(labelText: 'I am a'),
-                    items: const [
-                      DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
-                      DropdownMenuItem(value: 'student', child: Text('Student')),
-                      DropdownMenuItem(value: 'parent', child: Text('Parent')),
+                    decoration: InputDecoration(labelText: l10n.iAmA),
+                    items: [
+                      DropdownMenuItem(value: 'teacher', child: Text(l10n.teacher)),
+                      DropdownMenuItem(value: 'student', child: Text(l10n.student)),
+                      DropdownMenuItem(value: 'parent', child: Text(l10n.parent)),
                     ],
                     onChanged: (value) => setState(() => _role = value!),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                    decoration: InputDecoration(labelText: l10n.name),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? l10n.nameRequired : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _surnameController,
-                    decoration: const InputDecoration(labelText: 'Surname'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Surname is required' : null,
+                    decoration: InputDecoration(labelText: l10n.surname),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? l10n.surnameRequired : null,
                   ),
                   if (_role == 'student') ...[
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _schoolIdController,
-                      decoration: const InputDecoration(
-                        labelText: 'School ID',
-                        helperText: 'Your teacher uses this to match you to their class roster',
+                      decoration: InputDecoration(
+                        labelText: l10n.schoolId,
+                        helperText: l10n.schoolIdHelperText,
                       ),
                       keyboardType: TextInputType.number,
                       validator: (v) {
                         if (_role != 'student') return null;
                         final trimmed = v?.trim() ?? '';
-                        if (trimmed.isEmpty) return 'School ID is required';
-                        if (int.tryParse(trimmed) == null) return 'School ID must be a number';
+                        if (trimmed.isEmpty) return l10n.schoolIdRequired;
+                        if (int.tryParse(trimmed) == null) return l10n.schoolIdMustBeNumber;
                         return null;
                       },
                     ),
@@ -112,18 +116,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
+                    decoration: InputDecoration(labelText: l10n.email),
                     keyboardType: TextInputType.emailAddress,
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Email is required' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? l10n.emailRequired : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(labelText: 'Password'),
+                    decoration: InputDecoration(labelText: l10n.password),
                     obscureText: true,
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Password is required';
-                      if (v.length < 8) return 'Password must be at least 8 characters';
+                      if (v == null || v.isEmpty) return l10n.passwordRequired;
+                      if (v.length < 8) return l10n.passwordMinLength;
                       return null;
                     },
                   ),
@@ -136,12 +140,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                        : const Text('Register'),
+                        : Text(l10n.register),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false),
-                    child: const Text('Already have an account? Log in'),
+                    child: Text(l10n.alreadyHaveAccount),
                   ),
                 ],
               ),

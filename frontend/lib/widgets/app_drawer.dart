@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
+import '../locale_notifier.dart';
 import '../services/auth_service.dart';
 
 class DrawerAction {
@@ -20,6 +22,7 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -45,9 +48,17 @@ class AppDrawer extends StatelessWidget {
               onTap: action.onTap,
             ),
           const Divider(),
+          ValueListenableBuilder<Locale>(
+            valueListenable: localeNotifier,
+            builder: (context, locale, _) => ListTile(
+              leading: const Icon(Icons.language),
+              title: Text(locale.languageCode == 'tr' ? 'Türkçe' : 'English'),
+              onTap: toggleLocale,
+            ),
+          ),
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Log out'),
+            title: Text(l10n.logOut),
             onTap: () async {
               await AuthService.logout();
               if (context.mounted) {

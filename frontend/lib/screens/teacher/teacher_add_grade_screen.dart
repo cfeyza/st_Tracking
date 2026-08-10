@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/classroom.dart';
 import '../../models/teacher.dart';
@@ -38,10 +39,11 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
     if (_classroomId == null || _studentId == null || _subjectController.text.trim().isEmpty ||
         _valueController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pick a classroom and student, and fill in subject and grade.')),
+        SnackBar(content: Text(l10n.pickClassroomAndStudentGradeError)),
       );
       return;
     }
@@ -54,7 +56,8 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
         value: _valueController.text.trim(),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Grade added.')));
+      final ll10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ll10n.gradeAdded)));
       _subjectController.clear();
       _valueController.clear();
     } on ApiException catch (e) {
@@ -67,8 +70,9 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Add grades')),
+      appBar: AppBar(title: Text(l10n.addGrades)),
       body: FutureBuilder<List<ClassroomOut>>(
         future: _classroomsFuture,
         builder: (context, snapshot) {
@@ -86,7 +90,7 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
               children: [
                 DropdownButtonFormField<int>(
                   initialValue: _classroomId,
-                  decoration: const InputDecoration(labelText: 'Classroom'),
+                  decoration: InputDecoration(labelText: l10n.classroom),
                   items: [
                     for (final c in classrooms) DropdownMenuItem(value: c.id, child: Text(c.name)),
                   ],
@@ -94,18 +98,18 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
                 ),
                 const SizedBox(height: 16),
                 if (_classroomId == null)
-                  const InputDecorator(
-                    decoration: InputDecoration(labelText: 'Student'),
-                    child: Text('Select a classroom first'),
+                  InputDecorator(
+                    decoration: InputDecoration(labelText: l10n.student),
+                    child: Text(l10n.selectClassroomFirst),
                   )
                 else
                   FutureBuilder<List<StudentListItem>>(
                     future: _studentsFuture,
                     builder: (context, studentSnapshot) {
                       if (studentSnapshot.connectionState != ConnectionState.done) {
-                        return const InputDecorator(
-                          decoration: InputDecoration(labelText: 'Student'),
-                          child: SizedBox(
+                        return InputDecorator(
+                          decoration: InputDecoration(labelText: l10n.student),
+                          child: const SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
@@ -114,7 +118,7 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
                       }
                       if (studentSnapshot.hasError) {
                         return InputDecorator(
-                          decoration: const InputDecoration(labelText: 'Student'),
+                          decoration: InputDecoration(labelText: l10n.student),
                           child: Text(
                             '${(studentSnapshot.error as ApiException?)?.message ?? studentSnapshot.error}',
                           ),
@@ -123,7 +127,7 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
                       final students = studentSnapshot.data!;
                       return DropdownButtonFormField<int>(
                         initialValue: _studentId,
-                        decoration: const InputDecoration(labelText: 'Student'),
+                        decoration: InputDecoration(labelText: l10n.student),
                         items: [
                           for (final s in students)
                             DropdownMenuItem(value: s.id, child: Text('${s.name} ${s.surname} (${s.schoolId})')),
@@ -135,19 +139,19 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _subjectController,
-                  decoration: const InputDecoration(labelText: 'Subject (e.g. Math)'),
+                  decoration: InputDecoration(labelText: l10n.subjectLabel),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _valueController,
-                  decoration: const InputDecoration(labelText: 'Grade (e.g. 85 or A-)'),
+                  decoration: InputDecoration(labelText: l10n.gradeValueLabel),
                 ),
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: _submitting ? null : _submit,
                   child: _submitting
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Add grade'),
+                      : Text(l10n.addGrade),
                 ),
               ],
             ),

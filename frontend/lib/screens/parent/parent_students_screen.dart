@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/parent.dart';
 import '../../services/api_client.dart';
@@ -22,8 +23,9 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('My students')),
+      appBar: AppBar(title: Text(l10n.myStudents)),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(context).pushNamed('/parent/add-student-code'),
         child: const Icon(Icons.add),
@@ -39,7 +41,7 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
           }
           final students = snapshot.data!;
           if (students.isEmpty) {
-            return const Center(child: Text('No students linked yet. Tap + to add one.'));
+            return Center(child: Text(l10n.noStudentsLinked));
           }
           return ListView.separated(
             itemCount: students.length,
@@ -49,7 +51,7 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
               return ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.person)),
                 title: Text('${s.name} ${s.surname}'),
-                subtitle: Text('School ID: ${s.schoolId}'),
+                subtitle: Text(l10n.schoolIdValue(s.schoolId.toString())),
               );
             },
           );

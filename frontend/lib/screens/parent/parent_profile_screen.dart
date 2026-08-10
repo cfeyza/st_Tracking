@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/parent.dart';
 import '../../services/api_client.dart';
@@ -22,8 +23,9 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l10n.profile)),
       body: FutureBuilder<ParentProfile>(
         future: _future,
         builder: (context, snapshot) {
@@ -44,9 +46,9 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
                   children: [
                     const CircleAvatar(radius: 56, child: Icon(Icons.person, size: 56)),
                     const SizedBox(height: 24),
-                    _ProfileField(label: 'Name', value: parent.name),
-                    _ProfileField(label: 'Surname', value: parent.surname),
-                    _ProfileField(label: 'Email', value: parent.email),
+                    _ProfileField(label: l10n.name, value: parent.name),
+                    _ProfileField(label: l10n.surname, value: parent.surname),
+                    _ProfileField(label: l10n.email, value: parent.email),
                   ],
                 ),
               ),

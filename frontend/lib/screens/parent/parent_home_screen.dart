@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/announcement.dart';
 import '../../models/paginated.dart';
@@ -38,14 +39,15 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Parent')),
+      appBar: AppBar(title: Text(l10n.parent)),
       drawer: AppDrawer(
         onProfileTap: () => Navigator.of(context).pushNamed('/parent/profile'),
         actions: [
           DrawerAction(
             icon: Icons.qr_code,
-            label: 'Add student code',
+            label: l10n.addStudentCode,
             onTap: () async {
               await Navigator.of(context).pushNamed('/parent/add-student-code');
               _refresh();
@@ -53,7 +55,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
           ),
           DrawerAction(
             icon: Icons.people_outline,
-            label: 'My students',
+            label: l10n.myStudents,
             onTap: () => Navigator.of(context).pushNamed('/parent/students'),
           ),
         ],
@@ -77,8 +79,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
             final result = snapshot.data!;
             final announcements = result.items;
             if (announcements.isEmpty) {
-              return ListView(children: const [
-                Padding(padding: EdgeInsets.all(24), child: Text('No announcements yet.')),
+              return ListView(children: [
+                Padding(padding: const EdgeInsets.all(24), child: Text(l10n.noAnnouncementsYet)),
               ]);
             }
             return Column(
@@ -94,7 +96,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                         child: ListTile(
                           title: Text(a.text),
                           subtitle: Text(
-                            'For ${a.studentName} · ${a.teacherName} · ${a.classrooms.join(", ")}\n'
+                            '${l10n.parentAnnouncementMeta(a.studentName ?? '', a.teacherName ?? '', a.classrooms.join(", "))}\n'
                             '${a.createdAt.toLocal().toString().split('.').first}',
                           ),
                           isThreeLine: true,
@@ -112,4 +114,3 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
     );
   }
 }
-

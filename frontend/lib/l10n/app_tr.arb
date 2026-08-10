@@ -1,0 +1,164 @@
+{
+  "@@locale": "tr",
+
+  "appTitle": "Öğrenci Takip Uygulaması",
+
+  "logIn": "Giriş yap",
+  "logOut": "Çıkış yap",
+  "register": "Kayıt ol",
+  "cancel": "İptal",
+  "add": "Ekle",
+  "ok": "Tamam",
+  "post": "Gönder",
+  "delete": "Sil",
+  "remove": "Kaldır",
+
+  "email": "E-posta",
+  "password": "Şifre",
+  "name": "Ad",
+  "surname": "Soyad",
+  "schoolId": "Okul No",
+  "teacherCode": "Öğretmen kodu",
+  "studentCode": "Öğrenci kodu",
+  "classroom": "Sınıf",
+  "student": "Öğrenci",
+  "teacher": "Öğretmen",
+  "parent": "Veli",
+  "date": "Tarih",
+  "subject": "Ders",
+  "grade": "Not",
+  "status": "Durum",
+  "registered": "Kayıtlı",
+  "pending": "Beklemede",
+  "ascending": "Artan",
+  "descending": "Azalan",
+  "announcements": "Duyurular",
+  "classrooms": "Sınıflar",
+  "students": "Öğrenciler",
+  "grades": "Notlar",
+  "profile": "Profil",
+
+  "emailRequired": "E-posta zorunludur",
+  "passwordRequired": "Şifre zorunludur",
+  "nameRequired": "Ad zorunludur",
+  "surnameRequired": "Soyad zorunludur",
+  "schoolIdRequired": "Okul No zorunludur",
+  "schoolIdMustBeNumber": "Okul No sayı olmalıdır",
+  "passwordMinLength": "Şifre en az 8 karakter olmalıdır",
+  "schoolIdHelperText": "Öğretmeniniz sizi sınıf listesiyle eşleştirmek için bunu kullanır",
+
+  "iAmA": "Ben bir",
+
+  "dontHaveAccount": "Hesabınız yok mu? Kayıt olun",
+  "alreadyHaveAccount": "Zaten hesabınız var mı? Giriş yapın",
+  "registrationSuccess": "Kayıt başarılı! Hesabınızı doğrulamak için e-postanızı kontrol edin, ardından giriş yapın.",
+
+  "copiedToClipboard": "{label} panoya kopyalandı",
+
+  "pageXofY": "{page}/{totalPages} sayfa",
+
+  "myGrades": "Notlarım",
+  "myStudents": "Öğrencilerim",
+  "myClassrooms": "Sınıflarım",
+
+  "gradesWithStudent": "Notlar — {studentName}",
+  "myStudentsWithClassroom": "Öğrencilerim — {classroomName}",
+
+  "addTeacherCode": "Öğretmen kodu ekle",
+  "addStudentCode": "Öğrenci kodu ekle",
+  "addClassroom": "Sınıf ekle",
+  "addGrades": "Not ekle",
+  "addGrade": "Not ekle",
+  "addToRoster": "Listeye ekle",
+  "createClassroom": "Sınıf oluştur",
+  "newClassroom": "Yeni sınıf",
+  "existingClassroom": "Mevcut sınıf",
+
+  "noAnnouncementsYet": "Henüz duyuru yok.",
+  "noGradesYet": "Henüz not yok.",
+  "noGradesFound": "Not bulunamadı.",
+  "noStudentsFound": "Öğrenci bulunamadı.",
+  "noClassroomsYet": "Henüz sınıf yok. Eklemek için + düğmesine dokunun.",
+  "noStudentsLinked": "Henüz öğrenci bağlanmadı. Eklemek için + düğmesine dokunun.",
+  "noExistingClassrooms": "Henüz sınıfınız yok. Bunun yerine yeni bir tane oluşturun.",
+
+  "newAnnouncement": "Yeni duyuru",
+  "announcementText": "Duyuru metni",
+  "targetClassrooms": "Hedef sınıf(lar)",
+  "enterTextAndPickClassroom": "Metin girin ve en az bir sınıf seçin.",
+  "addClassroomFirst": "Duyuru göndermeden önce bir sınıf ekleyin.",
+
+  "parentAnnouncementMeta": "{studentName} için · {teacherName} · {classrooms}",
+
+  "deleteClassroomTooltip": "Sınıfı sil",
+  "deleteClassroomTitle": "Sınıf silinsin mi?",
+  "deleteClassroomConfirm": "Bu işlem '{name}' sınıfını siler. O sınıftaki öğrenciler öğrenci listenizden de kaldırılır; kayıtları silinmez.",
+  "deletedClassroom": "'{name}' silindi.",
+
+  "studentCount": "{count} öğrenci",
+
+  "classroomNameLabel": "Sınıf adı (örn. 5A)",
+  "addStudentsHelper": "Bu sınıfa ad, soyad ve okul numarasıyla öğrenci ekleyin. Sonradan doğru sınıfa yerleştirmenize gerek yok — zaten bu sınıfa ekliyorsunuz.",
+  "pdfImportHelper": "Ya da doğrudan e-Okul sınıf listesi PDF'inden bir veya daha fazla sınıf içe aktarın — sınıf ve şube dosyadan okunur, bu nedenle yukarıdaki alanlar kullanılmaz.",
+  "importing": "İçe aktarılıyor…",
+  "importFromPdf": "PDF'den içe aktar",
+  "importSummary": "İçe aktarma özeti",
+  "noClassroomsInPdf": "Bu PDF'den hiçbir sınıf okunamadı.",
+  "importNew": "yeni",
+  "importExisting": "mevcut",
+
+  "importStudentsAdded": "{count} öğrenci eklendi",
+
+  "importSkipped": ", {count} atlandı (zaten listede)",
+  "importIssues": "Sorunlar:",
+  "chooseClassroom": "Bir sınıf seçin.",
+  "rosterUpdated": "Liste güncellendi.",
+  "classroomNameRequired": "Sınıf adı zorunludur.",
+  "classroomAlreadyExists": "'{name}' adında bir sınıf zaten var. Bunun yerine mevcut sınıflar listesinden seçin.",
+  "classroomCreated": "Sınıf oluşturuldu.",
+
+  "filterAllStudents": "Filtre: tüm öğrenciler",
+  "allStudents": "Tüm öğrenciler",
+  "filterAllClassrooms": "Filtre: tüm sınıflar",
+  "allClassrooms": "Tüm sınıflar",
+  "filterByTeacher": "Öğretmene göre filtrele",
+  "allTeachers": "Tüm öğretmenler",
+
+  "sortBy": "Sıralama: {value}",
+
+  "removeStudentTooltip": "Öğrenciyi kaldır",
+  "removeStudentTitle": "Öğrenci kaldırılsın mı?",
+  "removeStudentConfirm": "{studentName} tüm sınıflarınızdan ve listenizden kaldırılacak. Kayıtları ve not geçmişi saklanır; onlara bağlı diğer öğretmen veya veliler etkilenmez.",
+  "removedStudent": "{studentName} kaldırıldı.",
+
+  "classroomsColumn": "Sınıf(lar)",
+
+  "enterTeacherCodeInstruction": "Öğretmeninizin verdiği kodu girin. Bunun çalışması için zaten o öğretmenin sınıf listesinde (ad, soyad ve okul numaranızla eşleştirilen) olmanız gerekir.",
+  "teacherCodeLabel": "Öğretmen kodu",
+  "linkedToTeacher": "{teacherName} ile bağlantı kuruldu",
+  "nowLinkedToTeacher": "Bu öğretmene başarıyla bağlandınız.",
+  "addedToClassrooms": "Şu sınıflara eklendiniz: {classrooms}",
+
+  "enterChildStudentCode": "Çocuğunuzun öğrenci kodunu girin (profil sayfasında bulunur).",
+  "studentCodeLabel": "Öğrenci kodu",
+  "studentLinked": "Öğrenci bağlandı.",
+  "schoolIdValue": "Okul No: {id}",
+
+  "fillInAllRosterFields": "Her liste satırı için ad, soyad ve okul numarasını doldurun (veya kaldırın).",
+  "schoolIdMustBeNumberRoster": "Okul No sayı olmalıdır.",
+  "studentsSection": "Öğrenciler",
+  "addRow": "Satır ekle",
+
+  "enterManually": "Manüel gir",
+  "pickClassroomAndStudentGradeHint": "Sınıf ve öğrenci seçin, ardından notu girin.",
+  "scanOpticForm": "Optik form tara",
+  "readExamSheet": "Sınav kağıdı oku",
+
+  "selectClassroomFirst": "Önce bir sınıf seçin",
+  "subjectLabel": "Ders (örn. Matematik)",
+  "gradeValueLabel": "Not (örn. 85 veya A-)",
+  "pickClassroomAndStudentGradeError": "Sınıf ve öğrenci seçin, ders ve notu girin.",
+  "gradeAdded": "Not eklendi.",
+
+  "comingSoon": "Çok yakında"
+}

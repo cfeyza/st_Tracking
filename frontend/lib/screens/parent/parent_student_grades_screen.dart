@@ -5,24 +5,31 @@ import '../../models/grade.dart';
 import '../../models/paginated.dart';
 import '../../models/student.dart';
 import '../../services/api_client.dart';
-import '../../services/student_service.dart';
+import '../../services/parent_service.dart';
 import '../../widgets/pagination_bar.dart';
 
-class StudentGradesScreen extends StatefulWidget {
-  const StudentGradesScreen({super.key});
+class ParentStudentGradesScreen extends StatefulWidget {
+  final int studentId;
+  final String studentName;
+
+  const ParentStudentGradesScreen({
+    super.key,
+    required this.studentId,
+    required this.studentName,
+  });
 
   @override
-  State<StudentGradesScreen> createState() => _StudentGradesScreenState();
+  State<ParentStudentGradesScreen> createState() => _ParentStudentGradesScreenState();
 }
 
-Map<String, String> _buildGradeSortOptions(AppLocalizations l10n) => {
+Map<String, String> _buildSortOptions(AppLocalizations l10n) => {
   'date': l10n.date,
   'subject': l10n.subject,
   'value': l10n.grade,
   'teacher': l10n.teacher,
 };
 
-class _StudentGradesScreenState extends State<StudentGradesScreen> {
+class _ParentStudentGradesScreenState extends State<ParentStudentGradesScreen> {
   int _page = 1;
   int? _selectedTeacherId;
   List<TeacherFilterItem>? _teachers;
@@ -33,17 +40,18 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   @override
   void initState() {
     super.initState();
-    _future = StudentService.listGrades(page: _page, sortBy: _sortBy, order: _order);
+    _load();
     _loadTeachers();
   }
 
   Future<void> _loadTeachers() async {
-    final teachers = await StudentService.listGradeTeachers();
+    final teachers = await ParentService.listStudentGradeTeachers(widget.studentId);
     if (mounted) setState(() => _teachers = teachers);
   }
 
   void _load() {
-    _future = StudentService.listGrades(
+    _future = ParentService.listStudentGrades(
+      widget.studentId,
       page: _page,
       teacherId: _selectedTeacherId,
       sortBy: _sortBy,
@@ -85,10 +93,10 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final showFilter = _teachers != null && _teachers!.length > 1;
-    final sortOptions = _buildGradeSortOptions(l10n);
+    final sortOptions = _buildSortOptions(l10n);
+    final showTeacherFilter = _teachers != null && _teachers!.length > 1;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.myGrades)),
+      appBar: AppBar(title: Text(l10n.gradesWithStudent(widget.studentName))),
       body: Column(
         children: [
           Padding(
@@ -98,7 +106,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if (showFilter)
+                if (showTeacherFilter)
                   DropdownButton<int?>(
                     value: _selectedTeacherId,
                     hint: Text(l10n.allTeachers),
@@ -137,7 +145,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+                  return Center(
+                    child: Text(
+                      '${(snapshot.error as ApiException?)?.message ?? snapshot.error}',
+                    ),
+                  );
                 }
                 final result = snapshot.data!;
                 final grades = result.items;

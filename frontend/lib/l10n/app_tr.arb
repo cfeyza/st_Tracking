@@ -160,5 +160,13 @@
   "pickClassroomAndStudentGradeError": "Sınıf ve öğrenci seçin, ders ve notu girin.",
   "gradeAdded": "Not eklendi.",
 
-  "comingSoon": "Çok yakında"
+  "comingSoon": "Çok yakında",
+
+  "deleteAnnouncementTooltip": "Duyuruyu sil",
+  "deleteAnnouncementTitle": "Duyuru silinsin mi?",
+  "deleteAnnouncementConfirm": "Bu duyuru kalıcı olarak silinecek.",
+  "deletedAnnouncement": "Duyuru silindi.",
+
+  "studentsListPartial": "{total} öğrencinin yalnızca {fetched} tanesi yüklenebildi — bazıları listede görünmeyebilir.",
+  "classroomsListPartial": "{total} sınıfın yalnızca {fetched} tanesi yüklenebildi — bazıları listede görünmeyebilir."
 }

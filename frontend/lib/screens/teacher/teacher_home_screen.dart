@@ -49,14 +49,22 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   Future<void> _openAddAnnouncementDialog() async {
     final l10n = AppLocalizations.of(context);
     List<ClassroomOut> classrooms;
+    int classroomsTotal;
     try {
-      classrooms = await TeacherService.listAllClassrooms();
+      final result = await TeacherService.listAllClassrooms();
+      classrooms = result.items;
+      classroomsTotal = result.total;
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
       return;
     }
     if (!mounted) return;
+    if (classroomsTotal > classrooms.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.classroomsListPartial(fetched: classrooms.length, total: classroomsTotal))),
+      );
+    }
     if (classrooms.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.addClassroomFirst)),
@@ -148,7 +156,45 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       },
     );
 
-    if (posted == true) _refresh();
+    if (posted == true) _goToPage(1);
+  }
+
+  Future<void> _confirmDeleteAnnouncement(Announcement announcement) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        final dl10n = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          title: Text(dl10n.deleteAnnouncementTitle),
+          content: Text(dl10n.deleteAnnouncementConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(dl10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(dl10n.delete),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+
+    try {
+      await TeacherService.deleteAnnouncement(announcement.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.deletedAnnouncement)));
+      if (_page > 1) _page = 1;
+      _refresh();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   @override
@@ -247,6 +293,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                           title: Text(a.text),
                           subtitle: Text(
                             '${a.classrooms.join(", ")} · ${a.createdAt.toLocal().toString().split('.').first}',
+                          ),
+                          trailing: IconButton(
+                            tooltip: l10n.deleteAnnouncementTooltip,
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _confirmDeleteAnnouncement(a),
                           ),
                         ),
                       PaginationBar(

@@ -13,6 +13,7 @@ import 'screens/auth/register_screen.dart';
 import 'screens/parent/parent_add_student_code_screen.dart';
 import 'screens/parent/parent_home_screen.dart';
 import 'screens/parent/parent_profile_screen.dart';
+import 'screens/parent/parent_student_grades_screen.dart';
 import 'screens/parent/parent_students_screen.dart';
 import 'screens/student/student_add_teacher_code_screen.dart';
 import 'screens/student/student_grades_screen.dart';
@@ -59,18 +60,18 @@ void main() async {
 class StudentTrackingApp extends StatelessWidget {
   const StudentTrackingApp({super.key});
 
-  static String _initialRoute() {
-    if (!Session.isLoggedIn) return '/login';
-    return switch (Session.role) {
-      'teacher' => '/teacher/home',
-      'student' => '/student/home',
-      'parent' => '/parent/home',
-      _ => '/login',
-    };
-  }
-
   static Route<dynamic> _onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case '/':
+        if (!Session.isLoggedIn) {
+          return MaterialPageRoute(builder: (_) => const LoginScreen());
+        }
+        return switch (Session.role) {
+          'teacher' => MaterialPageRoute(builder: (_) => const TeacherHomeScreen()),
+          'student' => MaterialPageRoute(builder: (_) => const StudentHomeScreen()),
+          'parent' => MaterialPageRoute(builder: (_) => const ParentHomeScreen()),
+          _ => MaterialPageRoute(builder: (_) => const LoginScreen()),
+        };
       case '/login':
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case '/register':
@@ -122,6 +123,14 @@ class StudentTrackingApp extends StatelessWidget {
         return MaterialPageRoute(builder: (_) => const ParentAddStudentCodeScreen());
       case '/parent/students':
         return MaterialPageRoute(builder: (_) => const ParentStudentsScreen());
+      case '/parent/student-grades':
+        final args = settings.arguments as Map?;
+        return MaterialPageRoute(
+          builder: (_) => ParentStudentGradesScreen(
+            studentId: args?['studentId'] as int? ?? 0,
+            studentName: args?['studentName'] as String? ?? '',
+          ),
+        );
 
       default:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
@@ -148,7 +157,7 @@ class StudentTrackingApp extends StatelessWidget {
             Locale('en'),
             Locale('tr'),
           ],
-          initialRoute: _initialRoute(),
+          initialRoute: '/',
           onGenerateRoute: _onGenerateRoute,
           debugShowCheckedModeBanner: false,
         );

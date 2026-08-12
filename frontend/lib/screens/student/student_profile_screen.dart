@@ -22,6 +22,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     _future = StudentService.getMe();
   }
 
+  void _copy(BuildContext context, String label, String value) {
+    final l10n = AppLocalizations.of(context);
+    Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.copiedToClipboard(label))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -34,72 +42,109 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+            return Center(
+              child: Text(
+                '${(snapshot.error as ApiException?)?.message ?? snapshot.error}',
+              ),
+            );
           }
           final student = snapshot.data!;
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircleAvatar(radius: 56, child: Icon(Icons.person, size: 56)),
-                    const SizedBox(height: 24),
-                    _ProfileField(label: l10n.studentCode, value: student.studentCode, copyable: true),
-                    _ProfileField(label: l10n.name, value: student.name),
-                    _ProfileField(label: l10n.surname, value: student.surname),
-                    _ProfileField(label: l10n.schoolId, value: student.schoolId.toString()),
-                    _ProfileField(label: l10n.email, value: student.email),
-                  ],
+          final colorScheme = Theme.of(context).colorScheme;
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  color: colorScheme.primaryContainer,
+                  padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 44,
+                        backgroundColor: colorScheme.onPrimaryContainer.withAlpha(26),
+                        child: Icon(
+                          Icons.person,
+                          size: 44,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${student.name} ${student.surname}',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.student,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onPrimaryContainer.withAlpha(178),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.qr_code),
+                          title: Text(l10n.studentCode),
+                          subtitle: Text(
+                            student.studentCode,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          trailing: const Icon(Icons.copy, size: 18),
+                          onTap: () => _copy(context, l10n.studentCode, student.studentCode),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.person_outline),
+                          title: Text(l10n.name),
+                          subtitle: Text(
+                            student.name,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.badge_outlined),
+                          title: Text(l10n.surname),
+                          subtitle: Text(
+                            student.surname,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.tag),
+                          title: Text(l10n.schoolId),
+                          subtitle: Text(
+                            student.schoolId.toString(),
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.email_outlined),
+                          title: Text(l10n.email),
+                          subtitle: Text(
+                            student.email,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _ProfileField extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool copyable;
-
-  const _ProfileField({required this.label, required this.value, this.copyable = false});
-
-  void _copy(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    Clipboard.setData(ClipboardData(text: value));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.copiedToClipboard(label))),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final valueRow = Row(
-      children: [
-        Text(value, style: Theme.of(context).textTheme.titleMedium),
-        if (copyable) ...[
-          const SizedBox(width: 6),
-          Icon(Icons.copy, size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
-        ],
-      ],
-    );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          if (copyable)
-            InkWell(onTap: () => _copy(context), child: valueRow)
-          else
-            valueRow,
-        ],
       ),
     );
   }

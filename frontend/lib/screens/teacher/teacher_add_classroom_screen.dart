@@ -34,12 +34,12 @@ class _TeacherAddClassroomScreenState extends State<TeacherAddClassroomScreen> {
 
   Future<void> _loadExistingClassrooms() async {
     try {
-      final classrooms = await TeacherService.listAllClassrooms();
+      final result = await TeacherService.listAllClassrooms();
       if (!mounted) return;
       setState(() {
-        _existingClassrooms = classrooms;
+        _existingClassrooms = result.items;
         _loadingClassrooms = false;
-        if (_mode == _ClassroomMode.existing && classrooms.isEmpty) {
+        if (_mode == _ClassroomMode.existing && result.items.isEmpty) {
           _mode = _ClassroomMode.newClassroom;
         }
       });

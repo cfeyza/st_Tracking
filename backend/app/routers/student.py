@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +21,9 @@ from app.schemas.device_token import DeviceTokenOut, DeviceTokenRegister
 from app.schemas.grade import GradeOut
 from app.schemas.student import StudentProfileOut, TeacherCodeRequest, TeacherCodeResponse, TeacherFilterItem
 from app.services.roster import find_and_link_teacher_code
+
+GradeSortFieldStudent = Literal["date", "subject", "value", "teacher"]
+SortOrder = Literal["asc", "desc"]
 
 router = APIRouter(prefix="/student", tags=["student"])
 
@@ -166,6 +171,8 @@ async def list_grades(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
     teacher_id: int | None = Query(default=None),
+    sort_by: GradeSortFieldStudent = Query(default="date"),
+    order: SortOrder = Query(default="desc"),
     student: StudentProfile = Depends(get_current_student),
     db: AsyncSession = Depends(get_db),
 ) -> Page[GradeOut]:
@@ -173,11 +180,18 @@ async def list_grades(
     if teacher_id is not None:
         filters.append(Grade.teacher_id == teacher_id)
     total = await db.scalar(select(func.count(Grade.id)).where(*filters))
+    sort_columns = {
+        "date": (Grade.created_at,),
+        "subject": (Grade.subject,),
+        "value": (Grade.value,),
+        "teacher": (TeacherProfile.surname, TeacherProfile.name),
+    }[sort_by]
     result = await db.execute(
         select(Grade)
+        .join(TeacherProfile, TeacherProfile.id == Grade.teacher_id)
         .options(selectinload(Grade.classroom), selectinload(Grade.teacher))
         .where(*filters)
-        .order_by(Grade.created_at.desc())
+        .order_by(*(c.desc() if order == "desc" else c.asc() for c in sort_columns))
         .limit(page_size)
         .offset((page - 1) * page_size)
     )

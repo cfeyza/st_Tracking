@@ -252,5 +252,26 @@
   "pickClassroomAndStudentGradeError": "Pick a classroom and student, and fill in subject and grade.",
   "gradeAdded": "Grade added.",
 
-  "comingSoon": "Coming soon"
+  "comingSoon": "Coming soon",
+
+  "deleteAnnouncementTooltip": "Delete announcement",
+  "deleteAnnouncementTitle": "Delete announcement?",
+  "deleteAnnouncementConfirm": "This announcement will be permanently deleted.",
+  "deletedAnnouncement": "Announcement deleted.",
+
+  "studentsListPartial": "Could only load {fetched} of {total} students — some may be missing from the list.",
+  "@studentsListPartial": {
+    "placeholders": {
+      "fetched": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "classroomsListPartial": "Could only load {fetched} of {total} classrooms — some may be missing from the list.",
+  "@classroomsListPartial": {
+    "placeholders": {
+      "fetched": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  }
 }

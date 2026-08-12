@@ -33,49 +33,89 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+            return Center(
+              child: Text(
+                '${(snapshot.error as ApiException?)?.message ?? snapshot.error}',
+              ),
+            );
           }
           final parent = snapshot.data!;
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircleAvatar(radius: 56, child: Icon(Icons.person, size: 56)),
-                    const SizedBox(height: 24),
-                    _ProfileField(label: l10n.name, value: parent.name),
-                    _ProfileField(label: l10n.surname, value: parent.surname),
-                    _ProfileField(label: l10n.email, value: parent.email),
-                  ],
+          final colorScheme = Theme.of(context).colorScheme;
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  color: colorScheme.primaryContainer,
+                  padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 44,
+                        backgroundColor: colorScheme.onPrimaryContainer.withAlpha(26),
+                        child: Icon(
+                          Icons.person,
+                          size: 44,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${parent.name} ${parent.surname}',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: colorScheme.onPrimaryContainer,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.parent,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onPrimaryContainer.withAlpha(178),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.person_outline),
+                          title: Text(l10n.name),
+                          subtitle: Text(
+                            parent.name,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.badge_outlined),
+                          title: Text(l10n.surname),
+                          subtitle: Text(
+                            parent.surname,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.email_outlined),
+                          title: Text(l10n.email),
+                          subtitle: Text(
+                            parent.email,
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _ProfileField extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _ProfileField({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
-        ],
       ),
     );
   }

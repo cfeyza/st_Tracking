@@ -454,4 +454,16 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get comingSoon => 'Çok yakında';
+
+  @override
+  String get deleteAnnouncementTooltip => 'Duyuruyu sil';
+
+  @override
+  String get deleteAnnouncementTitle => 'Duyuru silinsin mi?';
+
+  @override
+  String get deleteAnnouncementConfirm => 'Bu duyuru kalıcı olarak silinecek.';
+
+  @override
+  String get deletedAnnouncement => 'Duyuru silindi.';
 }

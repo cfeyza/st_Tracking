@@ -46,18 +46,28 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
 
   Future<void> _loadFilterOptions() async {
     try {
-      final results = await Future.wait([
+      final (studentResult, classroomResult) = await (
         TeacherService.listAllStudents(),
         TeacherService.listAllClassrooms(),
-      ]);
+      ).wait;
       if (!mounted) return;
       setState(() {
-        _students = results[0] as List<StudentListItem>;
-        _classrooms = results[1] as List<ClassroomOut>;
+        _students = studentResult.items;
+        _classrooms = classroomResult.items;
         if (_studentId != null && !_students.any((s) => s.id == _studentId)) {
           _studentId = null;
         }
       });
+      final l10n = AppLocalizations.of(context);
+      if (studentResult.total > studentResult.items.length) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.studentsListPartial(fetched: studentResult.items.length, total: studentResult.total))),
+        );
+      } else if (classroomResult.total > classroomResult.items.length) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.classroomsListPartial(fetched: classroomResult.items.length, total: classroomResult.total))),
+        );
+      }
     } on ApiException {
       // Filter dropdowns just stay empty; the list itself still loads.
     }

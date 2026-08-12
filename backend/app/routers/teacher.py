@@ -461,6 +461,25 @@ async def create_announcement(
     )
 
 
+@router.delete("/announcements/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_announcement(
+    announcement_id: int,
+    teacher: TeacherProfile = Depends(get_current_teacher),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db.execute(
+        select(Announcement).where(
+            Announcement.id == announcement_id,
+            Announcement.teacher_id == teacher.id,
+        )
+    )
+    announcement = result.scalar_one_or_none()
+    if announcement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
+    await db.delete(announcement)
+    await db.commit()
+
+
 @router.get("/announcements", response_model=Page[AnnouncementOut])
 async def list_announcements(
     page: int = Query(default=1, ge=1),

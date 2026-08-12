@@ -25,7 +25,7 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
   @override
   void initState() {
     super.initState();
-    _classroomsFuture = TeacherService.listAllClassrooms();
+    _classroomsFuture = TeacherService.listAllClassrooms().then((r) => r.items);
   }
 
   void _onClassroomChanged(int? classroomId) {

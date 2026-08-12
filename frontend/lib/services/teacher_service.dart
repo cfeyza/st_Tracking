@@ -22,13 +22,20 @@ class TeacherService {
     return Paginated.fromJson(json as Map<String, dynamic>, ClassroomOut.fromJson);
   }
 
-  static Future<List<ClassroomOut>> listAllClassrooms() async {
+  static Future<({List<ClassroomOut> items, int total})> listAllClassrooms() async {
     final first = await listClassrooms(page: 1, pageSize: 100);
-    if (first.totalPages <= 1) return first.items;
+    if (first.totalPages <= 1) {
+      assert(first.items.length == first.total,
+          'listAllClassrooms: single page but item count ${first.items.length} != server total ${first.total}');
+      return (items: first.items, total: first.total);
+    }
     final rest = await Future.wait([
       for (int p = 2; p <= first.totalPages; p++) listClassrooms(page: p, pageSize: 100),
     ]);
-    return [...first.items, for (final page in rest) ...page.items];
+    final items = [...first.items, for (final page in rest) ...page.items];
+    assert(items.length == first.total,
+        'listAllClassrooms: fetched ${items.length} across all pages but server reported ${first.total}');
+    return (items: items, total: first.total);
   }
 
   static Future<void> deleteClassroom(int classroomId) async {
@@ -83,13 +90,20 @@ class TeacherService {
     await ApiClient.delete('/teacher/students/$studentId');
   }
 
-  static Future<List<StudentListItem>> listAllStudents() async {
+  static Future<({List<StudentListItem> items, int total})> listAllStudents() async {
     final first = await listStudents(page: 1, pageSize: 100);
-    if (first.totalPages <= 1) return first.items;
+    if (first.totalPages <= 1) {
+      assert(first.items.length == first.total,
+          'listAllStudents: single page but item count ${first.items.length} != server total ${first.total}');
+      return (items: first.items, total: first.total);
+    }
     final rest = await Future.wait([
       for (int p = 2; p <= first.totalPages; p++) listStudents(page: p, pageSize: 100),
     ]);
-    return [...first.items, for (final page in rest) ...page.items];
+    final items = [...first.items, for (final page in rest) ...page.items];
+    assert(items.length == first.total,
+        'listAllStudents: fetched ${items.length} across all pages but server reported ${first.total}');
+    return (items: items, total: first.total);
   }
 
   static Future<Paginated<Announcement>> listAnnouncements({int page = 1, int pageSize = kDefaultPageSize}) async {
@@ -103,6 +117,10 @@ class TeacherService {
       'classroom_ids': classroomIds,
     });
     return Announcement.fromJson(json as Map<String, dynamic>);
+  }
+
+  static Future<void> deleteAnnouncement(int announcementId) async {
+    await ApiClient.delete('/teacher/announcements/$announcementId');
   }
 
   static Future<Paginated<Grade>> listGrades({

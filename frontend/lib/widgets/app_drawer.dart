@@ -24,11 +24,15 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Drawer(
+      width: 240,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           GestureDetector(
-            onTap: onProfileTap,
+            onTap: () {
+              Navigator.of(context).pop();
+              onProfileTap();
+            },
             child: DrawerHeader(
               decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
               child: const Align(
@@ -45,7 +49,10 @@ class AppDrawer extends StatelessWidget {
             ListTile(
               leading: Icon(action.icon),
               title: Text(action.label),
-              onTap: action.onTap,
+              onTap: () {
+                Navigator.of(context).pop();
+                action.onTap();
+              },
             ),
           const Divider(),
           ValueListenableBuilder<Locale>(

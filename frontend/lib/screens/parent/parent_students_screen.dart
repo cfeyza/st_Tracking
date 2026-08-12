@@ -52,6 +52,14 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
                 leading: const CircleAvatar(child: Icon(Icons.person)),
                 title: Text('${s.name} ${s.surname}'),
                 subtitle: Text(l10n.schoolIdValue(s.schoolId.toString())),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).pushNamed(
+                  '/parent/student-grades',
+                  arguments: {
+                    'studentId': s.id,
+                    'studentName': '${s.name} ${s.surname}',
+                  },
+                ),
               );
             },
           );

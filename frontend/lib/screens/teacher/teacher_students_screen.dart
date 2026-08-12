@@ -42,14 +42,20 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
 
   Future<void> _loadClassrooms() async {
     try {
-      final classrooms = await TeacherService.listAllClassrooms();
+      final result = await TeacherService.listAllClassrooms();
       if (!mounted) return;
       setState(() {
-        _classrooms = classrooms;
+        _classrooms = result.items;
         if (_classroomId != null && !_classrooms.any((c) => c.id == _classroomId)) {
           _classroomId = null;
         }
       });
+      if (result.total > result.items.length) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.classroomsListPartial(fetched: result.items.length, total: result.total))),
+        );
+      }
     } on ApiException {
       // Filter dropdown just stays empty; the list itself still loads.
     }

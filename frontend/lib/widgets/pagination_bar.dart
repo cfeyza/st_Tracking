@@ -22,6 +22,10 @@ class PaginationBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
+            icon: const Icon(Icons.first_page),
+            onPressed: page > 1 ? () => onPageChange(1) : null,
+          ),
+          IconButton(
             icon: const Icon(Icons.chevron_left),
             onPressed: page > 1 ? () => onPageChange(page - 1) : null,
           ),
@@ -29,6 +33,10 @@ class PaginationBar extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.chevron_right),
             onPressed: page < totalPages ? () => onPageChange(page + 1) : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.last_page),
+            onPressed: page < totalPages ? () => onPageChange(totalPages) : null,
           ),
         ],
       ),

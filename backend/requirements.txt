@@ -1,4 +1,5 @@
 fastapi==0.141.1
+slowapi==0.1.9
 uvicorn
 firebase-admin==6.5.0
 PyMuPDF

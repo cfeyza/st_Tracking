@@ -14,6 +14,6 @@ const String apiBaseUrl = String.fromEnvironment(
   defaultValue: 'http://localhost:8000',
 );
 
-const int kDefaultPageSize = 20;
+const int kDefaultPageSize = 10;
 
 

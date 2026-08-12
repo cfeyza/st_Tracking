@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,12 +10,19 @@ from app.db.session import get_db
 from app.deps import get_current_parent
 from app.models.announcement import Announcement, announcement_classrooms
 from app.models.classroom import classroom_students
+from app.models.grade import Grade
 from app.models.parent import ParentProfile, parent_students
 from app.models.student import StudentProfile
+from app.models.teacher import TeacherProfile
 from app.models.user import User
 from app.schemas.announcement import ParentAnnouncementOut
+from app.schemas.grade import GradeOut
 from app.schemas.pagination import Page
 from app.schemas.parent import ParentProfileOut, ParentStudentListItem, StudentCodeRequest
+from app.schemas.student import TeacherFilterItem
+
+GradeSortField = Literal["date", "subject", "value", "teacher"]
+SortOrder = Literal["asc", "desc"]
 
 router = APIRouter(prefix="/parent", tags=["parent"])
 
@@ -71,10 +80,23 @@ async def list_students(
 async def list_announcements(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
+    student_id: int | None = Query(default=None),
     parent: ParentProfile = Depends(get_current_parent),
     db: AsyncSession = Depends(get_db),
 ) -> Page[ParentAnnouncementOut]:
-    parent_student_ids = select(parent_students.c.student_id).where(parent_students.c.parent_id == parent.id)
+    if student_id is not None:
+        link = await db.execute(
+            select(parent_students).where(
+                parent_students.c.parent_id == parent.id,
+                parent_students.c.student_id == student_id,
+            )
+        )
+        if link.first() is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        student_condition = classroom_students.c.student_id == student_id
+    else:
+        parent_student_ids = select(parent_students.c.student_id).where(parent_students.c.parent_id == parent.id)
+        student_condition = classroom_students.c.student_id.in_(parent_student_ids)
 
     pairs = (
         select(
@@ -87,7 +109,7 @@ async def list_announcements(
         .join(announcement_classrooms, announcement_classrooms.c.announcement_id == Announcement.id)
         .join(classroom_students, classroom_students.c.classroom_id == announcement_classrooms.c.classroom_id)
         .join(StudentProfile, StudentProfile.id == classroom_students.c.student_id)
-        .where(classroom_students.c.student_id.in_(parent_student_ids))
+        .where(student_condition)
     ).subquery()
 
     total = await db.scalar(select(func.count()).select_from(pairs))
@@ -131,4 +153,88 @@ async def list_announcements(
         for student in (students_by_id[row.student_id],)
     ]
 
+    return Page.build(items=items, total=total or 0, page=page, page_size=page_size)
+
+
+@router.get("/students/{student_id}/grade-teachers", response_model=list[TeacherFilterItem])
+async def list_student_grade_teachers(
+    student_id: int,
+    parent: ParentProfile = Depends(get_current_parent),
+    db: AsyncSession = Depends(get_db),
+) -> list[TeacherFilterItem]:
+    link = await db.execute(
+        select(parent_students).where(
+            parent_students.c.parent_id == parent.id,
+            parent_students.c.student_id == student_id,
+        )
+    )
+    if link.first() is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    result = await db.execute(
+        select(TeacherProfile)
+        .join(Grade, Grade.teacher_id == TeacherProfile.id)
+        .where(Grade.student_id == student_id)
+        .distinct()
+        .order_by(TeacherProfile.name, TeacherProfile.surname)
+    )
+    teachers = result.scalars().unique().all()
+    return [TeacherFilterItem(id=t.id, name=f"{t.name} {t.surname}") for t in teachers]
+
+
+@router.get("/students/{student_id}/grades", response_model=Page[GradeOut])
+async def list_student_grades(
+    student_id: int,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
+    teacher_id: int | None = Query(default=None),
+    sort_by: GradeSortField = Query(default="date"),
+    order: SortOrder = Query(default="desc"),
+    parent: ParentProfile = Depends(get_current_parent),
+    db: AsyncSession = Depends(get_db),
+) -> Page[GradeOut]:
+    link = await db.execute(
+        select(parent_students).where(
+            parent_students.c.parent_id == parent.id,
+            parent_students.c.student_id == student_id,
+        )
+    )
+    if link.first() is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+
+    filters = [Grade.student_id == student_id]
+    if teacher_id is not None:
+        filters.append(Grade.teacher_id == teacher_id)
+
+    total = await db.scalar(select(func.count(Grade.id)).where(*filters))
+
+    sort_columns = {
+        "date": (Grade.created_at,),
+        "subject": (Grade.subject,),
+        "value": (Grade.value,),
+        "teacher": (TeacherProfile.surname, TeacherProfile.name),
+    }[sort_by]
+
+    result = await db.execute(
+        select(Grade)
+        .join(TeacherProfile, TeacherProfile.id == Grade.teacher_id)
+        .options(selectinload(Grade.classroom), selectinload(Grade.teacher))
+        .where(*filters)
+        .order_by(*(c.desc() if order == "desc" else c.asc() for c in sort_columns))
+        .limit(page_size)
+        .offset((page - 1) * page_size)
+    )
+    grades = result.scalars().all()
+    items = [
+        GradeOut(
+            id=g.id,
+            subject=g.subject,
+            value=g.value,
+            created_at=g.created_at,
+            teacher_name=f"{g.teacher.name} {g.teacher.surname}",
+            classroom_name=g.classroom.name if g.classroom else None,
+            student_name=None,
+        )
+        for g in grades
+    ]
     return Page.build(items=items, total=total or 0, page=page, page_size=page_size)

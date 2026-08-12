@@ -465,4 +465,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get comingSoon => 'Coming soon';
+
+  @override
+  String get deleteAnnouncementTooltip => 'Delete announcement';
+
+  @override
+  String get deleteAnnouncementTitle => 'Delete announcement?';
+
+  @override
+  String get deleteAnnouncementConfirm =>
+      'This announcement will be permanently deleted.';
+
+  @override
+  String get deletedAnnouncement => 'Announcement deleted.';
 }

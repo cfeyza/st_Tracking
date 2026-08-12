@@ -45,10 +45,14 @@ class StudentService {
     int page = 1,
     int pageSize = kDefaultPageSize,
     int? teacherId,
+    String sortBy = 'date',
+    String order = 'desc',
   }) async {
     final params = <String, String>{
       'page': page.toString(),
       'page_size': pageSize.toString(),
+      'sort_by': sortBy,
+      'order': order,
     };
     if (teacherId != null) params['teacher_id'] = teacherId.toString();
     final query = Uri(queryParameters: params).query;

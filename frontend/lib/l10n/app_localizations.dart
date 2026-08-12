@@ -893,6 +893,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Coming soon'**
   String get comingSoon;
+
+  /// No description provided for @deleteAnnouncementTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete announcement'**
+  String get deleteAnnouncementTooltip;
+
+  /// No description provided for @deleteAnnouncementTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete announcement?'**
+  String get deleteAnnouncementTitle;
+
+  /// No description provided for @deleteAnnouncementConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This announcement will be permanently deleted.'**
+  String get deleteAnnouncementConfirm;
+
+  /// No description provided for @deletedAnnouncement.
+  ///
+  /// In en, this message translates to:
+  /// **'Announcement deleted.'**
+  String get deletedAnnouncement;
 }
 
 class _AppLocalizationsDelegate

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile, status
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -136,11 +137,13 @@ async def delete_classroom(
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    """Soft-deletes the classroom and mirrors the side effects of a hard
-    delete: classroom_students links and student roster membership for orphaned
-    students are cleaned up, and Grade.classroom_id references are nullified
-    (mirroring the ondelete="SET NULL" FK behaviour). StudentProfile rows,
-    grade history, parent links, and other teachers' relationships are preserved.
+    """Soft-deletes the classroom by stamping deleted_at.
+
+    classroom_students links and grades.classroom_id are kept intact so the
+    delete is reversible. Queries that list active classrooms already filter
+    on Classroom.deleted_at.is_(None), so the links become invisible without
+    being destroyed. Only teacher_students is cleaned up for students who are
+    no longer enrolled in any of this teacher's active classrooms.
     """
     classroom = await _get_owned_classroom(db, teacher.id, classroom_id)
 
@@ -150,16 +153,7 @@ async def delete_classroom(
         )
     ).scalars().all()
 
-    # Soft-delete: stamp deleted_at instead of removing the row.
     classroom.deleted_at = datetime.now(timezone.utc)
-
-    # Nullify grade classroom references — mirrors ondelete="SET NULL".
-    await db.execute(
-        Grade.__table__.update().where(Grade.classroom_id == classroom_id).values(classroom_id=None)
-    )
-
-    # Remove classroom_students links — mirrors the CASCADE that a hard delete would trigger.
-    await db.execute(classroom_students.delete().where(classroom_students.c.classroom_id == classroom_id))
 
     await db.flush()
 
@@ -252,9 +246,12 @@ async def import_classrooms_pdf(
     if not filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF file.")
 
-    file_bytes = await file.read()
+    _MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
+    file_bytes = await file.read(_MAX_PDF_BYTES + 1)
+    if len(file_bytes) > _MAX_PDF_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="PDF must be 20 MB or smaller.")
     try:
-        pages = parse_pdf(file_bytes)
+        pages = await run_in_threadpool(parse_pdf, file_bytes)
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this file as a PDF.") from exc
 
@@ -352,6 +349,7 @@ async def list_students(
     )
 
     if classroom_id is not None:
+        await _get_owned_classroom(db, teacher.id, classroom_id)
         query = query.where(
             StudentProfile.id.in_(
                 select(classroom_students.c.student_id).where(classroom_students.c.classroom_id == classroom_id)
@@ -641,6 +639,7 @@ async def list_grades(
     if student_id is not None:
         query = query.where(Grade.student_id == student_id)
     if classroom_id is not None:
+        await _get_owned_classroom(db, teacher.id, classroom_id)
         query = query.where(Grade.classroom_id == classroom_id)
 
     total = await db.scalar(select(func.count()).select_from(query.subquery()))

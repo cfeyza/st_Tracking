@@ -1,15 +1,16 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.constants import DEFAULT_PAGE_SIZE
+from app.core.limiter import limiter
 from app.db.session import get_db
 from app.deps import get_current_parent
 from app.models.announcement import Announcement, announcement_classrooms
-from app.models.classroom import classroom_students
+from app.models.classroom import Classroom, classroom_students
 from app.models.grade import Grade
 from app.models.parent import ParentProfile, parent_students
 from app.models.student import StudentProfile
@@ -37,7 +38,9 @@ async def get_me(
 
 
 @router.post("/student-code", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
 async def add_student_code(
+    request: Request,
     payload: StudentCodeRequest,
     parent: ParentProfile = Depends(get_current_parent),
     db: AsyncSession = Depends(get_db),
@@ -108,8 +111,9 @@ async def list_announcements(
         .select_from(Announcement)
         .join(announcement_classrooms, announcement_classrooms.c.announcement_id == Announcement.id)
         .join(classroom_students, classroom_students.c.classroom_id == announcement_classrooms.c.classroom_id)
+        .join(Classroom, Classroom.id == classroom_students.c.classroom_id)
         .join(StudentProfile, StudentProfile.id == classroom_students.c.student_id)
-        .where(student_condition, Announcement.deleted_at.is_(None))
+        .where(student_condition, Classroom.deleted_at.is_(None), Announcement.deleted_at.is_(None))
     ).subquery()
 
     total = await db.scalar(select(func.count()).select_from(pairs))

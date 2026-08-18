@@ -21,13 +21,21 @@ class RosterEntryInput:
     school_id: int
 
 
-async def _generate_student_code(db: AsyncSession) -> str:
+async def _generate_student_codes(db: AsyncSession, count: int) -> list[str]:
+    if count == 0:
+        return []
     for _ in range(10):
-        code = generate_unique_code("STU")
-        result = await db.execute(select(StudentProfile).where(StudentProfile.student_code == code))
-        if result.scalar_one_or_none() is None:
-            return code
-    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate a unique code")
+        candidates = [generate_unique_code("STU") for _ in range(count)]
+        result = await db.execute(
+            select(StudentProfile.student_code).where(StudentProfile.student_code.in_(candidates))
+        )
+        taken = set(result.scalars().all())
+        unique = [c for c in candidates if c not in taken]
+        if len(unique) >= count:
+            return unique[:count]
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate unique student codes"
+    )
 
 
 async def import_roster(
@@ -61,7 +69,9 @@ async def import_roster(
     )
     taken_school_ids = {row[0] for row in existing_school_ids.all()}
 
-    for entry in entries:
+    codes = await _generate_student_codes(db, len(entries))
+
+    for idx, entry in enumerate(entries):
         school_id = entry.school_id
         name = entry.name.strip()
         surname = entry.surname.strip()
@@ -78,7 +88,7 @@ async def import_roster(
             name=name,
             surname=surname,
             school_id=school_id,
-            student_code=await _generate_student_code(db),
+            student_code=codes[idx],
         )
         db.add(student)
         await db.flush()

@@ -4,10 +4,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: student_tracking_user
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}
       POSTGRES_DB: student_tracking
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -19,7 +19,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://student_tracking_user:changeme@db:5432/student_tracking
+      DATABASE_URL: postgresql+asyncpg://student_tracking_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in backend/.env}@db:5432/student_tracking
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     ports:

@@ -9,7 +9,7 @@ teacher_students = Table(
     "teacher_students",
     Base.metadata,
     Column("teacher_id", ForeignKey("teacher_profiles.id", ondelete="CASCADE"), primary_key=True),
-    Column("student_id", ForeignKey("student_profiles.id", ondelete="CASCADE"), primary_key=True),
+    Column("student_id", ForeignKey("student_profiles.id", ondelete="CASCADE"), primary_key=True, index=True),
     Column("created_at", DateTime(timezone=True), server_default=func.now()),
 )
 

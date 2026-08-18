@@ -7,8 +7,8 @@ void main() {
     await tester.pumpWidget(const StudentTrackingApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Student Tracking App'), findsOneWidget);
-    expect(find.text('Log in'), findsOneWidget);
-    expect(find.text("Don't have an account? Register"), findsOneWidget);
+    expect(find.text('Öğrenci Takip Uygulaması'), findsOneWidget);
+    expect(find.text('Giriş yap'), findsOneWidget);
+    expect(find.text('Hesabınız yok mu? Kayıt olun'), findsOneWidget);
   });
 }

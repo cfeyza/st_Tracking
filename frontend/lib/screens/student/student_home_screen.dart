@@ -50,8 +50,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   Future<void> _loadTeachers() async {
-    final teachers = await StudentService.listAnnouncementTeachers();
-    if (mounted) setState(() => _teachers = teachers);
+    try {
+      final teachers = await StudentService.listAnnouncementTeachers();
+      if (mounted) setState(() => _teachers = teachers);
+    } catch (_) {
+      // Filter dropdown is optional; a failure here is non-fatal.
+    }
   }
 
   Future<void> _refresh() async {
@@ -152,7 +156,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               color: cs.surface,
               padding: AppInsets.filterBar(context),
               child: DropdownButtonFormField<int?>(
-                value: _selectedTeacherId,
+                initialValue: _selectedTeacherId,
                 decoration: InputDecoration(
                   labelText: l10n.filterByTeacher,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -182,8 +186,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     return ListView(children: [
                       Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(
-                            '${(snapshot.error as ApiException?)?.message ?? snapshot.error}'),
+                        child: Text(snapshot.error is ApiException
+                            ? (snapshot.error as ApiException).message
+                            : snapshot.error.toString()),
                       ),
                     ]);
                   }

@@ -28,6 +28,13 @@ class _TeacherAddGradeScreenState extends State<TeacherAddGradeScreen> {
     _classroomsFuture = TeacherService.listAllClassrooms().then((r) => r.items);
   }
 
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _valueController.dispose();
+    super.dispose();
+  }
+
   void _onClassroomChanged(int? classroomId) {
     setState(() {
       _classroomId = classroomId;

@@ -33,8 +33,12 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   }
 
   Future<void> _loadStudents() async {
-    final students = await ParentService.listStudents();
-    if (mounted) setState(() => _students = students);
+    try {
+      final students = await ParentService.listStudents();
+      if (mounted) setState(() => _students = students);
+    } catch (_) {
+      // Filter dropdown is optional; a failure here is non-fatal.
+    }
   }
 
   Future<void> _refresh() async {
@@ -123,7 +127,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                 color: cs.surface,
                 padding: AppInsets.filterBar(context),
                 child: DropdownButtonFormField<int?>(
-                  value: _selectedStudentId,
+                  initialValue: _selectedStudentId,
                   decoration: InputDecoration(
                     labelText: l10n.student,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -154,9 +158,9 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                     return ListView(children: [
                       Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(
-                          '${(snapshot.error as ApiException?)?.message ?? snapshot.error}',
-                        ),
+                        child: Text(snapshot.error is ApiException
+                            ? (snapshot.error as ApiException).message
+                            : snapshot.error.toString()),
                       ),
                     ]);
                   }

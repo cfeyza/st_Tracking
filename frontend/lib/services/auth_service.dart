@@ -48,6 +48,9 @@ class AuthService {
   }
 
   static Future<void> logout() async {
+    if (!kIsWeb && Session.role == 'student') {
+      await FcmService.deleteTokenFromBackend();
+    }
     await Session.clear();
   }
 }

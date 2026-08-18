@@ -1,11 +1,18 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AnnouncementCreate(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     classroom_ids: list[int]
+
+    @field_validator("text")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value.strip()
 
 
 class AnnouncementOut(BaseModel):

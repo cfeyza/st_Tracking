@@ -62,9 +62,25 @@ class _RosterEditorState extends State<RosterEditor> {
     widget.controller._state = this;
   }
 
+  @override
+  void dispose() {
+    for (final row in _rows) {
+      row.nameController.dispose();
+      row.surnameController.dispose();
+      row.schoolIdController.dispose();
+    }
+    super.dispose();
+  }
+
   void _addRow() => setState(() => _rows.add(_RosterRow()));
 
-  void _removeRow(int index) => setState(() => _rows.removeAt(index));
+  void _removeRow(int index) {
+    final row = _rows[index];
+    setState(() => _rows.removeAt(index));
+    row.nameController.dispose();
+    row.surnameController.dispose();
+    row.schoolIdController.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

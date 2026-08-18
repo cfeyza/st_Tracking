@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -63,22 +64,29 @@ class FcmService {
 
       final prefs = await SharedPreferences.getInstance();
 
-      // EĞER force true DEĞİLSE ve önceden kaydedilmişse atla
       if (!force && prefs.getString(_lastSentTokenKey) == token) {
         return;
       }
       await ApiClient.post('/student/device-token', body: {'token': token});
       await prefs.setString(_lastSentTokenKey, token);
     } catch (e) {
-      print("Failed to register FCM token: $e");
+      debugPrint("Failed to register FCM token: $e");
     }
   }
-}
 
-// DİKKAT: Bu fonksiyon bir sınıfın dışında (Top-level) ve @pragma('vm:entry-point') ile tanımlanmalıdır!
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Arka planda veya uygulama kapalıyken mesaj geldiğinde işletim sistemi bildirimi otomatik gösterir.
-  // Burada ekstra bir işlem yapmanız gerekirse yapabilirsiniz.
-  print("Background FCM message received: ${message.messageId}");
+  /// Removes this device's FCM token from the backend on logout.
+  /// Must be called while the session is still valid (before Session.clear()).
+  /// Clears the local cache regardless so the next login re-registers cleanly.
+  static Future<void> deleteTokenFromBackend() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_lastSentTokenKey);
+    await prefs.remove(_lastSentTokenKey);
+    if (token == null) return;
+    try {
+      final encodedToken = Uri.encodeQueryComponent(token);
+      await ApiClient.delete('/student/device-token?token=$encodedToken');
+    } catch (e) {
+      debugPrint("Failed to delete FCM token: $e");
+    }
+  }
 }

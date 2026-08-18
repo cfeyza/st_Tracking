@@ -32,6 +32,12 @@ class _TeacherAddClassroomScreenState extends State<TeacherAddClassroomScreen> {
     _loadExistingClassrooms();
   }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadExistingClassrooms() async {
     try {
       final result = await TeacherService.listAllClassrooms();

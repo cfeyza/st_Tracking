@@ -23,6 +23,8 @@ class RegisterRequest(BaseModel):
     def password_length(cls, value: str) -> str:
         if len(value) < 8:
             raise ValueError("password must be at least 8 characters")
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("password must not exceed 72 characters")
         return value
 
     @model_validator(mode="after")

@@ -20,6 +20,8 @@ class ApiException implements Exception {
 /// JSON, and turns non-2xx responses into an [ApiException] whose message is
 /// the backend's `detail` string (FastAPI's standard error shape).
 class ApiClient {
+  static const _kTimeout = Duration(seconds: 15);
+
   static Map<String, String> _headers({bool auth = true}) {
     final headers = {'Content-Type': 'application/json'};
     if (auth && Session.token != null) {
@@ -34,7 +36,14 @@ class ApiClient {
   /// `Session.token != null` guard avoids piling up redundant navigations
   /// when several authenticated requests 401 around the same time.
   static dynamic _decode(http.Response response, {bool auth = true}) {
-    final body = response.body.isEmpty ? null : jsonDecode(response.body);
+    dynamic body;
+    if (response.body.isNotEmpty) {
+      try {
+        body = jsonDecode(response.body);
+      } on FormatException {
+        throw ApiException(response.statusCode, 'Request failed (${response.statusCode})');
+      }
+    }
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     }
@@ -50,7 +59,7 @@ class ApiClient {
   }
 
   static Future<dynamic> get(String path, {bool auth = true}) async {
-    final response = await http.get(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth));
+    final response = await http.get(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
     return _decode(response, auth: auth);
   }
 
@@ -59,12 +68,12 @@ class ApiClient {
       Uri.parse('$apiBaseUrl$path'),
       headers: _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
-    );
+    ).timeout(_kTimeout);
     return _decode(response, auth: auth);
   }
 
   static Future<dynamic> delete(String path, {bool auth = true}) async {
-    final response = await http.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth));
+    final response = await http.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
     return _decode(response, auth: auth);
   }
 
@@ -78,7 +87,7 @@ class ApiClient {
     final request = http.MultipartRequest('POST', Uri.parse('$apiBaseUrl$path'));
     request.headers.addAll(_headers(auth: auth)..remove('Content-Type'));
     request.files.add(http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
-    final streamed = await request.send();
+    final streamed = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamed);
     return _decode(response, auth: auth);
   }

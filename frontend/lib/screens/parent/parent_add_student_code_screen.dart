@@ -15,6 +15,12 @@ class _ParentAddStudentCodeScreenState extends State<ParentAddStudentCodeScreen>
   final _codeController = TextEditingController();
   bool _loading = false;
 
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     final code = _codeController.text.trim();
     if (code.isEmpty) return;

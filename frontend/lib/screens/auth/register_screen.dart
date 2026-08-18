@@ -22,6 +22,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _schoolIdController = TextEditingController();
   bool _loading = false;
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _surnameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _schoolIdController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);

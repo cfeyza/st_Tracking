@@ -80,9 +80,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final textController = TextEditingController();
     final selected = <int>{};
     var isSending = false;
-    final posted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
+    bool? posted;
+    try {
+      posted = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
         return StatefulBuilder(builder: (dialogContext, setDialogState) {
           final dl10n = AppLocalizations.of(dialogContext);
           return AlertDialog(
@@ -162,7 +164,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           );
         });
       },
-    );
+      );
+    } finally {
+      textController.dispose();
+    }
 
     if (posted == true) _goToPage(1);
   }

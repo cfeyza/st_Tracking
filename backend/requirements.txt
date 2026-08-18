@@ -10,7 +10,9 @@ pydantic-settings==2.14.2
 pytesseract==0.3.13
 python-jose==3.5.0
 SQLAlchemy==2.0.51
-psycopg2-binary
+alembic==1.18.5
+asyncpg==0.31.0
+greenlet==3.5.4
 python-multipart
 email-validator
 python-dotenv

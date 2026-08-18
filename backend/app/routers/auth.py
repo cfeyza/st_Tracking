@@ -44,7 +44,7 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
         if existing_user.is_verified:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="This email is already registered. Please log in instead.",
+                detail="This email is already registered.",
             )
 
         token_result = await db.execute(
@@ -54,7 +54,7 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
         if existing_token is not None and existing_token.expires_at >= datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="This email is already registered. Please check your inbox for the verification link.",
+                detail="This email is already registered.",
             )
 
         # Unverified user with an expired (or missing) token: the old

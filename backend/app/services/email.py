@@ -25,9 +25,8 @@ def send_verification_email(to_email: str, name: str, token: str) -> None:
         "If you did not create this account, you can ignore this email."
     )
 
-    print(f"[VERIFICATION EMAIL] To: {to_email}\nSubject: {subject}\n\n{body}\n")
-
     if not settings.SMTP_HOST:
+        print(f"[VERIFICATION EMAIL] To: {to_email}\nSubject: {subject}\n\n{body}\n")
         logger.info("SMTP not configured; verification email was only printed to the console.")
         return
 
@@ -47,4 +46,3 @@ def send_verification_email(to_email: str, name: str, token: str) -> None:
         logger.info("Verification email sent to %s", to_email)
     except Exception:
         logger.exception("Failed to send verification email to %s", to_email)
-        raise

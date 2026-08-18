@@ -1,11 +1,12 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.constants import DEFAULT_PAGE_SIZE
+from app.core.limiter import limiter
 from app.db.session import get_db
 from app.deps import get_current_student
 from app.models.announcement import Announcement, AnnouncementRead, announcement_classrooms
@@ -71,8 +72,32 @@ async def register_device_token(
     return DeviceTokenOut(id=device_token.id, token=device_token.token)
 
 
+@router.delete("/device-token", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_device_token(
+    token: str = Query(max_length=255),
+    student: StudentProfile = Depends(get_current_student),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Removes an FCM device token on logout so the device stops receiving
+    push notifications for this student's classes.
+    """
+    result = await db.execute(
+        select(DeviceToken).where(
+            DeviceToken.token == token,
+            DeviceToken.student_id == student.id,
+        )
+    )
+    device_token = result.scalar_one_or_none()
+    if device_token is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device token not found")
+    await db.delete(device_token)
+    await db.commit()
+
+
 @router.post("/teacher-code", response_model=TeacherCodeResponse)
+@limiter.limit("5/minute")
 async def add_teacher_code(
+    request: Request,
     payload: TeacherCodeRequest,
     student: StudentProfile = Depends(get_current_student),
     db: AsyncSession = Depends(get_db),
@@ -103,7 +128,8 @@ async def list_announcement_teachers(
         .join(Announcement, Announcement.teacher_id == TeacherProfile.id)
         .join(announcement_classrooms, announcement_classrooms.c.announcement_id == Announcement.id)
         .join(classroom_students, classroom_students.c.classroom_id == announcement_classrooms.c.classroom_id)
-        .where(classroom_students.c.student_id == student.id, Announcement.deleted_at.is_(None))
+        .join(Classroom, Classroom.id == classroom_students.c.classroom_id)
+        .where(classroom_students.c.student_id == student.id, Classroom.deleted_at.is_(None), Announcement.deleted_at.is_(None))
         .distinct()
         .order_by(TeacherProfile.name, TeacherProfile.surname)
     )
@@ -119,8 +145,10 @@ async def list_announcements(
     student: StudentProfile = Depends(get_current_student),
     db: AsyncSession = Depends(get_db),
 ) -> Page[StudentAnnouncementOut]:
-    my_classroom_ids = select(classroom_students.c.classroom_id).where(
-        classroom_students.c.student_id == student.id
+    my_classroom_ids = (
+        select(classroom_students.c.classroom_id)
+        .join(Classroom, Classroom.id == classroom_students.c.classroom_id)
+        .where(classroom_students.c.student_id == student.id, Classroom.deleted_at.is_(None))
     )
     filters = [Announcement.classrooms.any(Classroom.id.in_(my_classroom_ids)), Announcement.deleted_at.is_(None)]
     if teacher_id is not None:
@@ -179,8 +207,10 @@ async def acknowledge_announcement(
     Returns 404 if the announcement doesn't exist or isn't visible to this
     student. Returns 409 if the student has already confirmed it.
     """
-    my_classroom_ids = select(classroom_students.c.classroom_id).where(
-        classroom_students.c.student_id == student.id
+    my_classroom_ids = (
+        select(classroom_students.c.classroom_id)
+        .join(Classroom, Classroom.id == classroom_students.c.classroom_id)
+        .where(classroom_students.c.student_id == student.id, Classroom.deleted_at.is_(None))
     )
     visible = await db.scalar(
         select(func.count(Announcement.id)).where(

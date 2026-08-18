@@ -27,6 +27,13 @@ class ClassroomCreate(BaseModel):
     name: str = Field(max_length=100)
     students: list[RosterStudentIn] = []
 
+    @field_validator("name")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value.strip()
+
 
 class ClassroomOut(BaseModel):
     id: int

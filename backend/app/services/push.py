@@ -3,6 +3,7 @@ import logging
 import firebase_admin
 from firebase_admin import credentials, messaging
 from sqlalchemy import select
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
@@ -50,7 +51,7 @@ async def send_announcement_push(classroom_ids: list[int], title: str, body: str
                 messaging.Message(notification=messaging.Notification(title=title, body=body), token=token)
                 for token in tokens
             ]
-            response = messaging.send_each(messages, app=app)
+            response = await run_in_threadpool(messaging.send_each, messages, app=app)
 
             invalid_tokens = [
                 tokens[i]

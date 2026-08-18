@@ -1,6 +1,9 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_JWT_SECRET = "change-this-to-a-long-random-string"
 
 
 class Settings(BaseSettings):
@@ -8,7 +11,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql+asyncpg://student_tracking_user:changeme@localhost:5432/student_tracking"
 
-    JWT_SECRET_KEY: str = "change-this-to-a-long-random-string"
+    JWT_SECRET_KEY: str = _DEFAULT_JWT_SECRET
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
@@ -25,6 +28,16 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "*"
 
     FIREBASE_CREDENTIALS_PATH: str = "firebase-service-account.json"
+
+    @model_validator(mode="after")
+    def _require_jwt_secret(self) -> "Settings":
+        if self.JWT_SECRET_KEY == _DEFAULT_JWT_SECRET:
+            raise RuntimeError(
+                "JWT_SECRET_KEY is still the insecure default value. "
+                "Set a strong secret in your .env file: "
+                "python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

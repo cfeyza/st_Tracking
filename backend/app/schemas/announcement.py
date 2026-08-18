@@ -47,8 +47,12 @@ class StudentReaderInfo(BaseModel):
 
 class AnnouncementReadersOut(BaseModel):
     announcement_id: int
-    readers: list[StudentReaderInfo]
-    non_readers: list[StudentReaderInfo]
+    total_readers: int
+    total_non_readers: int
+    items: list[StudentReaderInfo]
+    page: int
+    page_size: int
+    total_pages: int
 
 
 class ParentAnnouncementOut(BaseModel):

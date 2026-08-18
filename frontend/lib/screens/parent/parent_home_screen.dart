@@ -23,6 +23,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   int _page = 1;
   int? _selectedStudentId;
   List<ParentStudentListItem>? _students;
+  bool _loadingStudents = false;
   late Future<Paginated<Announcement>> _future;
 
   @override
@@ -33,11 +34,15 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   }
 
   Future<void> _loadStudents() async {
+    if (_loadingStudents) return;
+    _loadingStudents = true;
     try {
       final students = await ParentService.listStudents();
       if (mounted) setState(() => _students = students);
     } catch (_) {
       // Filter dropdown is optional; a failure here is non-fatal.
+    } finally {
+      _loadingStudents = false;
     }
   }
 

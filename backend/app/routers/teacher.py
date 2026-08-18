@@ -259,6 +259,14 @@ async def import_classrooms_pdf(
     errors: list[str] = []
     seen_school_ids: set[int] = set()
 
+    all_page_school_ids = [
+        entry.school_id
+        for page in pages
+        if not page.error and page.classroom_name is not None
+        for entry in page.entries
+    ]
+    existing_school_ids = await _find_duplicate_school_ids(db, teacher.id, all_page_school_ids)
+
     for page in pages:
         if page.error:
             errors.append(f"Page {page.page_number}: {page.error}")
@@ -281,14 +289,11 @@ async def import_classrooms_pdf(
             db.add(classroom)
             await db.flush()
 
-        page_school_ids = [entry.school_id for entry in page.entries]
-        duplicate_ids = await _find_duplicate_school_ids(db, teacher.id, page_school_ids)
-
         skipped: list[str] = []
         clean_entries = []
         for entry in page.entries:
             school_id = entry.school_id
-            if school_id in duplicate_ids or school_id in seen_school_ids:
+            if school_id in existing_school_ids or school_id in seen_school_ids:
                 skipped.append(f"{school_id} ({entry.name} {entry.surname}): already in your roster")
                 continue
             seen_school_ids.add(school_id)
@@ -333,7 +338,7 @@ async def list_students(
     classrooms_agg = (
         select(
             classroom_students.c.student_id.label("student_id"),
-            func.string_agg(Classroom.name, ", ").label("classroom_names"),
+            func.array_agg(Classroom.name).label("classroom_names"),
         )
         .select_from(classroom_students.join(Classroom, Classroom.id == classroom_students.c.classroom_id))
         .where(Classroom.teacher_id == teacher.id, Classroom.deleted_at.is_(None))
@@ -377,7 +382,7 @@ async def list_students(
                 surname=student.surname,
                 school_id=student.school_id,
                 student_code=student.student_code,
-                classrooms=classroom_names.split(", ") if classroom_names else [],
+                classrooms=classroom_names if classroom_names else [],
                 is_registered=student.user_id is not None,
             )
         )
@@ -482,11 +487,16 @@ async def delete_announcement(
 @router.get("/announcements/{announcement_id}/readers", response_model=AnnouncementReadersOut)
 async def get_announcement_readers(
     announcement_id: int,
+    filter_by: Literal["readers", "non_readers"] = Query(default="non_readers", alias="filter"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=100),
     teacher: TeacherProfile = Depends(get_current_teacher),
     db: AsyncSession = Depends(get_db),
 ) -> AnnouncementReadersOut:
-    """Returns the read/unread split for all students in the announcement's
-    target classrooms. Only works for announcements owned by this teacher.
+    """Returns a paginated read/unread list for the announcement's target classrooms.
+
+    Use ?filter=readers for students who have read it, ?filter=non_readers (default)
+    for those who haven't. Both totals are always included so the UI can show a summary.
     """
     announcement = await db.scalar(
         select(Announcement).where(
@@ -498,37 +508,64 @@ async def get_announcement_readers(
     if announcement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
 
-    # All distinct students enrolled in the announcement's target classrooms.
-    students_result = await db.execute(
-        select(StudentProfile)
+    read_join = (AnnouncementRead.student_id == StudentProfile.id) & (AnnouncementRead.announcement_id == announcement_id)
+
+    total_readers = await db.scalar(
+        select(func.count(func.distinct(StudentProfile.id)))
         .join(classroom_students, classroom_students.c.student_id == StudentProfile.id)
-        .join(
-            announcement_classrooms,
-            announcement_classrooms.c.classroom_id == classroom_students.c.classroom_id,
-        )
+        .join(announcement_classrooms, announcement_classrooms.c.classroom_id == classroom_students.c.classroom_id)
+        .join(AnnouncementRead, read_join)
         .where(announcement_classrooms.c.announcement_id == announcement_id)
-        .distinct()
-        .order_by(StudentProfile.surname, StudentProfile.name)
-    )
-    all_students = students_result.scalars().unique().all()
+    ) or 0
 
-    reads_result = await db.execute(
-        select(AnnouncementRead).where(AnnouncementRead.announcement_id == announcement_id)
-    )
-    read_map = {r.student_id: r.read_at for r in reads_result.scalars().all()}
+    total_non_readers = await db.scalar(
+        select(func.count(func.distinct(StudentProfile.id)))
+        .join(classroom_students, classroom_students.c.student_id == StudentProfile.id)
+        .join(announcement_classrooms, announcement_classrooms.c.classroom_id == classroom_students.c.classroom_id)
+        .outerjoin(AnnouncementRead, read_join)
+        .where(announcement_classrooms.c.announcement_id == announcement_id)
+        .where(AnnouncementRead.student_id.is_(None))
+    ) or 0
 
-    readers: list[StudentReaderInfo] = []
-    non_readers: list[StudentReaderInfo] = []
-    for s in all_students:
-        if s.id in read_map:
-            readers.append(StudentReaderInfo(id=s.id, name=s.name, surname=s.surname, read_at=read_map[s.id]))
-        else:
-            non_readers.append(StudentReaderInfo(id=s.id, name=s.name, surname=s.surname))
+    total = total_readers if filter_by == "readers" else total_non_readers
+    total_pages = (total + page_size - 1) // page_size if page_size else 0
+
+    if filter_by == "readers":
+        rows = await db.execute(
+            select(StudentProfile.id, StudentProfile.name, StudentProfile.surname, AnnouncementRead.read_at)
+            .join(classroom_students, classroom_students.c.student_id == StudentProfile.id)
+            .join(announcement_classrooms, announcement_classrooms.c.classroom_id == classroom_students.c.classroom_id)
+            .join(AnnouncementRead, read_join)
+            .where(announcement_classrooms.c.announcement_id == announcement_id)
+            .distinct()
+            .order_by(StudentProfile.surname, StudentProfile.name)
+            .limit(page_size)
+            .offset((page - 1) * page_size)
+        )
+        items = [StudentReaderInfo(id=r.id, name=r.name, surname=r.surname, read_at=r.read_at) for r in rows]
+    else:
+        rows = await db.execute(
+            select(StudentProfile.id, StudentProfile.name, StudentProfile.surname)
+            .join(classroom_students, classroom_students.c.student_id == StudentProfile.id)
+            .join(announcement_classrooms, announcement_classrooms.c.classroom_id == classroom_students.c.classroom_id)
+            .outerjoin(AnnouncementRead, read_join)
+            .where(announcement_classrooms.c.announcement_id == announcement_id)
+            .where(AnnouncementRead.student_id.is_(None))
+            .distinct()
+            .order_by(StudentProfile.surname, StudentProfile.name)
+            .limit(page_size)
+            .offset((page - 1) * page_size)
+        )
+        items = [StudentReaderInfo(id=r.id, name=r.name, surname=r.surname) for r in rows]
 
     return AnnouncementReadersOut(
         announcement_id=announcement_id,
-        readers=readers,
-        non_readers=non_readers,
+        total_readers=total_readers,
+        total_non_readers=total_non_readers,
+        items=items,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
     )
 
 

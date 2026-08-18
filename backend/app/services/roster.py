@@ -160,10 +160,11 @@ async def find_and_link_teacher_code(
     placeholder_classroom_ids = await db.execute(
         select(classroom_students.c.classroom_id).where(classroom_students.c.student_id == placeholder.id)
     )
-    for (classroom_id,) in placeholder_classroom_ids.all():
+    classroom_ids = [row[0] for row in placeholder_classroom_ids.all()]
+    if classroom_ids:
         await db.execute(
             pg_insert(classroom_students)
-            .values(classroom_id=classroom_id, student_id=student.id)
+            .values([{"classroom_id": cid, "student_id": student.id} for cid in classroom_ids])
             .on_conflict_do_nothing()
         )
 
@@ -172,9 +173,12 @@ async def find_and_link_teacher_code(
     placeholder_parent_ids = await db.execute(
         select(parent_students.c.parent_id).where(parent_students.c.student_id == placeholder.id)
     )
-    for (parent_id,) in placeholder_parent_ids.all():
+    parent_ids = [row[0] for row in placeholder_parent_ids.all()]
+    if parent_ids:
         await db.execute(
-            pg_insert(parent_students).values(parent_id=parent_id, student_id=student.id).on_conflict_do_nothing()
+            pg_insert(parent_students)
+            .values([{"parent_id": pid, "student_id": student.id} for pid in parent_ids])
+            .on_conflict_do_nothing()
         )
 
     # Grades have their own surrogate primary key, so a plain reassignment is safe.

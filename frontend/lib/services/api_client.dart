@@ -21,6 +21,8 @@ class ApiException implements Exception {
 /// the backend's `detail` string (FastAPI's standard error shape).
 class ApiClient {
   static const _kTimeout = Duration(seconds: 15);
+  // Persistent client reuses TCP connections (keep-alive) across requests.
+  static final http.Client _client = http.Client();
 
   static Map<String, String> _headers({bool auth = true}) {
     final headers = {'Content-Type': 'application/json'};
@@ -59,12 +61,12 @@ class ApiClient {
   }
 
   static Future<dynamic> get(String path, {bool auth = true}) async {
-    final response = await http.get(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
+    final response = await _client.get(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
     return _decode(response, auth: auth);
   }
 
   static Future<dynamic> post(String path, {Map<String, dynamic>? body, bool auth = true}) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$apiBaseUrl$path'),
       headers: _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
@@ -73,7 +75,7 @@ class ApiClient {
   }
 
   static Future<dynamic> delete(String path, {bool auth = true}) async {
-    final response = await http.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
+    final response = await _client.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
     return _decode(response, auth: auth);
   }
 
@@ -87,7 +89,7 @@ class ApiClient {
     final request = http.MultipartRequest('POST', Uri.parse('$apiBaseUrl$path'));
     request.headers.addAll(_headers(auth: auth)..remove('Content-Type'));
     request.files.add(http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
-    final streamed = await request.send().timeout(const Duration(seconds: 60));
+    final streamed = await _client.send(request).timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamed);
     return _decode(response, auth: auth);
   }

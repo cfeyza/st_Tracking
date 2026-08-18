@@ -61,7 +61,8 @@ async def register_device_token(
     result = await db.execute(select(DeviceToken).where(DeviceToken.token == token))
     existing = result.scalar_one_or_none()
     if existing is not None:
-        existing.student_id = student.id
+        if existing.student_id != student.id:
+            existing.student_id = student.id
         device_token = existing
     else:
         device_token = DeviceToken(student_id=student.id, token=token)

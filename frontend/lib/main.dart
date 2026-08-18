@@ -41,8 +41,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  await Session.load();
-  await loadSavedLocale();
+  await Future.wait([Session.load(), loadSavedLocale()]);
 
   if (!kIsWeb) {
     try {

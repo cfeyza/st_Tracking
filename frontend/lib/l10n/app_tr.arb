@@ -168,5 +168,12 @@
   "deletedAnnouncement": "Duyuru silindi.",
 
   "studentsListPartial": "{total} öğrencinin yalnızca {fetched} tanesi yüklenebildi — bazıları listede görünmeyebilir.",
-  "classroomsListPartial": "{total} sınıfın yalnızca {fetched} tanesi yüklenebildi — bazıları listede görünmeyebilir."
+  "classroomsListPartial": "{total} sınıfın yalnızca {fetched} tanesi yüklenebildi — bazıları listede görünmeyebilir.",
+
+  "markAsRead": "Oku ve Onayla",
+  "acknowledged": "Okundu",
+  "viewReaders": "Okuyanları gör",
+  "announcementReaders": "Okuma durumu",
+  "studentsWhoRead": "Okuyanlar ({count})",
+  "studentsWhoHaventRead": "Okumayanlar ({count})"
 }

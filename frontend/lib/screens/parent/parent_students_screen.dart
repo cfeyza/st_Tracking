@@ -4,6 +4,8 @@ import 'package:student_tracking_app/l10n/app_localizations.dart';
 import '../../models/parent.dart';
 import '../../services/api_client.dart';
 import '../../services/parent_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
 
 class ParentStudentsScreen extends StatefulWidget {
   const ParentStudentsScreen({super.key});
@@ -24,8 +26,14 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.myStudents)),
+      backgroundColor: cs.surfaceContainerLowest,
+      appBar: AppBar(
+        title: Text(l10n.myStudents),
+        backgroundColor: cs.surface,
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(context).pushNamed('/parent/add-student-code'),
         child: const Icon(Icons.add),
@@ -37,33 +45,92 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+            return Center(
+              child: Text(
+                  '${(snapshot.error as ApiException?)?.message ?? snapshot.error}'),
+            );
           }
           final students = snapshot.data!;
           if (students.isEmpty) {
-            return Center(child: Text(l10n.noStudentsLinked));
+            return EmptyState(icon: Icons.people_outline, message: l10n.noStudentsLinked);
           }
-          return ListView.separated(
+          return ListView.builder(
+            padding: AppInsets.listWithFab(context),
             itemCount: students.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final s = students[index];
-              return ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person)),
-                title: Text('${s.name} ${s.surname}'),
-                subtitle: Text(l10n.schoolIdValue(s.schoolId.toString())),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).pushNamed(
-                  '/parent/student-grades',
-                  arguments: {
-                    'studentId': s.id,
-                    'studentName': '${s.name} ${s.surname}',
-                  },
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _StudentCard(
+                  student: s,
+                  onTap: () => Navigator.of(context).pushNamed(
+                    '/parent/student-grades',
+                    arguments: {
+                      'studentId': s.id,
+                      'studentName': '${s.name} ${s.surname}',
+                    },
+                  ),
                 ),
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _StudentCard extends StatelessWidget {
+  final ParentStudentListItem student;
+  final VoidCallback onTap;
+
+  const _StudentCard({required this.student, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Card(
+      shape: AppCard.shape(cs),
+      color: cs.surface,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cs.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.person_outline, color: cs.onTertiaryContainer, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${student.name} ${student.surname}',
+                      style: tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.schoolIdValue(student.schoolId.toString()),
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: cs.onSurfaceVariant, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

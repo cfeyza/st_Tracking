@@ -6,7 +6,18 @@ import '../../models/paginated.dart';
 import '../../models/student.dart';
 import '../../services/api_client.dart';
 import '../../services/student_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/grade_card.dart';
+import '../../widgets/grade_filter_bar.dart';
 import '../../widgets/pagination_bar.dart';
+
+Map<String, String> _buildGradeSortOptions(AppLocalizations l10n) => {
+      'date': l10n.date,
+      'subject': l10n.subject,
+      'value': l10n.grade,
+      'teacher': l10n.teacher,
+    };
 
 class StudentGradesScreen extends StatefulWidget {
   const StudentGradesScreen({super.key});
@@ -14,13 +25,6 @@ class StudentGradesScreen extends StatefulWidget {
   @override
   State<StudentGradesScreen> createState() => _StudentGradesScreenState();
 }
-
-Map<String, String> _buildGradeSortOptions(AppLocalizations l10n) => {
-  'date': l10n.date,
-  'subject': l10n.subject,
-  'value': l10n.grade,
-  'teacher': l10n.teacher,
-};
 
 class _StudentGradesScreenState extends State<StudentGradesScreen> {
   int _page = 1;
@@ -85,50 +89,30 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final showFilter = _teachers != null && _teachers!.length > 1;
+    final cs = Theme.of(context).colorScheme;
     final sortOptions = _buildGradeSortOptions(l10n);
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.myGrades)),
+      backgroundColor: cs.surfaceContainerLowest,
+      appBar: AppBar(
+        title: Text(l10n.myGrades),
+        backgroundColor: cs.surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (showFilter)
-                  DropdownButton<int?>(
-                    value: _selectedTeacherId,
-                    hint: Text(l10n.allTeachers),
-                    items: [
-                      DropdownMenuItem(value: null, child: Text(l10n.allTeachers)),
-                      for (final t in _teachers!)
-                        DropdownMenuItem(value: t.id, child: Text(t.name)),
-                    ],
-                    onChanged: _onTeacherChanged,
-                  ),
-                DropdownButton<String>(
-                  value: _sortBy,
-                  items: [
-                    for (final entry in sortOptions.entries)
-                      DropdownMenuItem(
-                        value: entry.key,
-                        child: Text(l10n.sortBy(entry.value)),
-                      ),
-                  ],
-                  onChanged: (value) => _onSortByChanged(value!),
-                ),
-                IconButton(
-                  tooltip: _order == 'asc' ? l10n.ascending : l10n.descending,
-                  icon: Icon(_order == 'asc' ? Icons.arrow_upward : Icons.arrow_downward),
-                  onPressed: _toggleOrder,
-                ),
-              ],
-            ),
+          GradeFilterBar(
+            teachers: _teachers,
+            selectedTeacherId: _selectedTeacherId,
+            onTeacherChanged: _onTeacherChanged,
+            sortOptions: sortOptions,
+            sortBy: _sortBy,
+            onSortByChanged: _onSortByChanged,
+            order: _order,
+            onToggleOrder: _toggleOrder,
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: cs.outlineVariant),
           Expanded(
             child: FutureBuilder<Paginated<Grade>>(
               future: _future,
@@ -137,39 +121,38 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+                  return Center(
+                      child: Text(
+                          '${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
                 }
                 final result = snapshot.data!;
                 final grades = result.items;
                 if (result.total == 0) {
-                  return Center(child: Text(l10n.noGradesYet));
+                  return EmptyState(
+                    icon: Icons.grade_outlined,
+                    message: l10n.noGradesYet,
+                  );
                 }
                 return Column(
                   children: [
                     Expanded(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.all(12),
+                      child: ListView.builder(
+                        padding: AppInsets.page(context),
                         itemCount: grades.length,
-                        separatorBuilder: (_, _) => const Divider(),
                         itemBuilder: (context, index) {
-                          final g = grades[index];
-                          return ListTile(
-                            leading: CircleAvatar(child: Text(g.value)),
-                            title: Text(g.subject),
-                            subtitle: Text(
-                              '${g.teacherName}${g.classroomName != null ? " · ${g.classroomName}" : ""}\n'
-                              '${g.createdAt.toLocal().toString().split('.').first}',
-                            ),
-                            isThreeLine: true,
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: GradeCard(grade: grades[index]),
                           );
                         },
                       ),
                     ),
-                    PaginationBar(
-                      page: result.page,
-                      totalPages: result.totalPages,
-                      onPageChange: _goToPage,
-                    ),
+                    if (result.totalPages > 1)
+                      PaginationBar(
+                        page: result.page,
+                        totalPages: result.totalPages,
+                        onPageChange: _goToPage,
+                      ),
                   ],
                 );
               },

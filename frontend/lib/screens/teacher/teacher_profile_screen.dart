@@ -5,6 +5,7 @@ import 'package:student_tracking_app/l10n/app_localizations.dart';
 import '../../models/teacher.dart';
 import '../../services/api_client.dart';
 import '../../services/teacher_service.dart';
+import '../../theme/app_theme.dart';
 
 class TeacherProfileScreen extends StatefulWidget {
   const TeacherProfileScreen({super.key});
@@ -23,18 +24,20 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   }
 
   void _copy(BuildContext context, String label, String value) {
-    final l10n = AppLocalizations.of(context);
     Clipboard.setData(ClipboardData(text: value));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.copiedToClipboard(label))),
+      SnackBar(content: Text(AppLocalizations.of(context).copiedToClipboard(label))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profile)),
+      backgroundColor: cs.surfaceContainerLowest,
+      appBar: AppBar(title: Text(l10n.profile), backgroundColor: cs.surface),
       body: FutureBuilder<TeacherProfile>(
         future: _future,
         builder: (context, snapshot) {
@@ -43,91 +46,34 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           }
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                '${(snapshot.error as ApiException?)?.message ?? snapshot.error}',
-              ),
-            );
+                child: Text(
+                    '${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
           }
           final teacher = snapshot.data!;
-          final colorScheme = Theme.of(context).colorScheme;
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  color: colorScheme.primaryContainer,
-                  padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 44,
-                        backgroundColor: colorScheme.onPrimaryContainer.withAlpha(26),
-                        child: Icon(
-                          Icons.person,
-                          size: 44,
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${teacher.name} ${teacher.surname}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.teacher,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onPrimaryContainer.withAlpha(178),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _ProfileHeader(name: '${teacher.name} ${teacher.surname}', role: l10n.teacher),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: AppInsets.page(context),
                   child: Card(
+                    shape: AppCard.shape(cs),
                     child: Column(
                       children: [
-                        ListTile(
-                          leading: const Icon(Icons.qr_code),
-                          title: Text(l10n.teacherCode),
-                          subtitle: Text(
-                            teacher.teacherCode,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
+                        _InfoTile(
+                          icon: Icons.qr_code,
+                          label: l10n.teacherCode,
+                          value: teacher.teacherCode,
                           trailing: const Icon(Icons.copy, size: 18),
                           onTap: () => _copy(context, l10n.teacherCode, teacher.teacherCode),
                         ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          leading: const Icon(Icons.person_outline),
-                          title: Text(l10n.name),
-                          subtitle: Text(
-                            teacher.name,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          leading: const Icon(Icons.badge_outlined),
-                          title: Text(l10n.surname),
-                          subtitle: Text(
-                            teacher.surname,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          leading: const Icon(Icons.email_outlined),
-                          title: Text(l10n.email),
-                          subtitle: Text(
-                            teacher.email,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ),
+                        _Divider(),
+                        _InfoTile(icon: Icons.person_outline, label: l10n.name, value: teacher.name),
+                        _Divider(),
+                        _InfoTile(icon: Icons.badge_outlined, label: l10n.surname, value: teacher.surname),
+                        _Divider(),
+                        _InfoTile(icon: Icons.email_outlined, label: l10n.email, value: teacher.email),
                       ],
                     ),
                   ),
@@ -137,6 +83,93 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared profile sub-widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ProfileHeader extends StatelessWidget {
+  final String name;
+  final String role;
+
+  const _ProfileHeader({required this.name, required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final isMobile = Bp.isMobile(context);
+    final avatarRadius = isMobile ? 36.0 : 44.0;
+
+    return Container(
+      color: cs.primaryContainer,
+      padding: EdgeInsets.symmetric(
+        vertical: isMobile ? 24 : 36,
+        horizontal: 24,
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: avatarRadius,
+            backgroundColor: cs.onPrimaryContainer.withAlpha(26),
+            child: Icon(Icons.person, size: avatarRadius, color: cs.onPrimaryContainer),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            name,
+            style: (isMobile ? tt.titleLarge : tt.headlineSmall)
+                ?.copyWith(color: cs.onPrimaryContainer),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            role,
+            style: tt.bodyMedium?.copyWith(color: cs.onPrimaryContainer.withAlpha(178)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  const _InfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      subtitle: Text(value, style: Theme.of(context).textTheme.bodyLarge),
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      indent: 16,
+      endIndent: 16,
+      color: Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }

@@ -1,5 +1,6 @@
 import '../config.dart';
 import '../models/announcement.dart';
+import '../models/announcement_readers.dart';
 import '../models/classroom.dart';
 import '../models/grade.dart';
 import '../models/paginated.dart';
@@ -121,6 +122,11 @@ class TeacherService {
 
   static Future<void> deleteAnnouncement(int announcementId) async {
     await ApiClient.delete('/teacher/announcements/$announcementId');
+  }
+
+  static Future<AnnouncementReaders> getAnnouncementReaders(int announcementId) async {
+    final json = await ApiClient.get('/teacher/announcements/$announcementId/readers');
+    return AnnouncementReaders.fromJson(json as Map<String, dynamic>);
   }
 
   static Future<Paginated<Grade>> listGrades({

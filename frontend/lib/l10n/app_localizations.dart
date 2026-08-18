@@ -917,6 +917,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Announcement deleted.'**
   String get deletedAnnouncement;
+
+  /// No description provided for @studentsListPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Could only load {fetched} of {total} students — some may be missing from the list.'**
+  String studentsListPartial(int fetched, int total);
+
+  /// No description provided for @classroomsListPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Could only load {fetched} of {total} classrooms — some may be missing from the list.'**
+  String classroomsListPartial(int fetched, int total);
+
+  /// No description provided for @markAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read & Acknowledge'**
+  String get markAsRead;
+
+  /// No description provided for @acknowledged.
+  ///
+  /// In en, this message translates to:
+  /// **'Acknowledged'**
+  String get acknowledged;
+
+  /// No description provided for @viewReaders.
+  ///
+  /// In en, this message translates to:
+  /// **'View readers'**
+  String get viewReaders;
+
+  /// No description provided for @announcementReaders.
+  ///
+  /// In en, this message translates to:
+  /// **'Readers'**
+  String get announcementReaders;
+
+  /// No description provided for @studentsWhoRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Have read ({count})'**
+  String studentsWhoRead(int count);
+
+  /// No description provided for @studentsWhoHaventRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Have not read ({count})'**
+  String studentsWhoHaventRead(int count);
 }
 
 class _AppLocalizationsDelegate

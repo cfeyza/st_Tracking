@@ -23,6 +23,25 @@ class StudentAnnouncementOut(BaseModel):
     created_at: datetime
     teacher_name: str
     classrooms: list[str]
+    is_read: bool
+    read_at: datetime | None = None
+
+
+class AcknowledgeOut(BaseModel):
+    read_at: datetime
+
+
+class StudentReaderInfo(BaseModel):
+    id: int
+    name: str
+    surname: str
+    read_at: datetime | None = None
+
+
+class AnnouncementReadersOut(BaseModel):
+    announcement_id: int
+    readers: list[StudentReaderInfo]
+    non_readers: list[StudentReaderInfo]
 
 
 class ParentAnnouncementOut(BaseModel):

@@ -12,7 +12,7 @@ class DrawerAction {
   DrawerAction({required this.icon, required this.label, required this.onTap});
 }
 
-/// Shared left drawer: a tappable profile picture up top, a caller-supplied
+/// Shared left drawer: a tappable profile header up top, a caller-supplied
 /// list of action buttons, and a logout item that always sits at the bottom.
 class AppDrawer extends StatelessWidget {
   final VoidCallback onProfileTap;
@@ -23,6 +23,9 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Drawer(
       width: 240,
       child: ListView(
@@ -33,18 +36,47 @@ class AppDrawer extends StatelessWidget {
               Navigator.of(context).pop();
               onProfileTap();
             },
-            child: DrawerHeader(
-              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
-              child: const Align(
-                alignment: Alignment.bottomLeft,
-                child: CircleAvatar(
-                  radius: 36,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 40, color: Colors.grey),
-                ),
+            child: Container(
+              color: colorScheme.primaryContainer,
+              padding: EdgeInsets.fromLTRB(
+                20,
+                MediaQuery.of(context).padding.top + 20,
+                20,
+                20,
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: colorScheme.onPrimaryContainer.withAlpha(26),
+                    child: Icon(Icons.person, size: 28, color: colorScheme.onPrimaryContainer),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.profile,
+                          style: textTheme.titleSmall?.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 12,
+                          color: colorScheme.onPrimaryContainer.withAlpha(178),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+          const SizedBox(height: 4),
           for (final action in actions)
             ListTile(
               leading: Icon(action.icon),
@@ -54,7 +86,8 @@ class AppDrawer extends StatelessWidget {
                 action.onTap();
               },
             ),
-          const Divider(),
+          Divider(height: 1, color: colorScheme.outlineVariant),
+          const SizedBox(height: 4),
           ValueListenableBuilder<Locale>(
             valueListenable: localeNotifier,
             builder: (context, locale, _) => ListTile(
@@ -64,8 +97,8 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.logout),
-            title: Text(l10n.logOut),
+            leading: Icon(Icons.logout, color: colorScheme.error),
+            title: Text(l10n.logOut, style: TextStyle(color: colorScheme.error)),
             onTap: () async {
               await AuthService.logout();
               if (context.mounted) {

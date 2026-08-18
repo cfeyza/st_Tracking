@@ -8,14 +8,14 @@ from sqlalchemy.orm import selectinload
 from app.constants import DEFAULT_PAGE_SIZE
 from app.db.session import get_db
 from app.deps import get_current_student
-from app.models.announcement import Announcement, announcement_classrooms
+from app.models.announcement import Announcement, AnnouncementRead, announcement_classrooms
 from app.models.classroom import Classroom, classroom_students
 from app.models.device_token import DeviceToken
 from app.models.grade import Grade
 from app.models.student import StudentProfile
 from app.models.teacher import TeacherProfile
 from app.models.user import User
-from app.schemas.announcement import StudentAnnouncementOut
+from app.schemas.announcement import AcknowledgeOut, StudentAnnouncementOut
 from app.schemas.pagination import Page
 from app.schemas.device_token import DeviceTokenOut, DeviceTokenRegister
 from app.schemas.grade import GradeOut
@@ -103,7 +103,7 @@ async def list_announcement_teachers(
         .join(Announcement, Announcement.teacher_id == TeacherProfile.id)
         .join(announcement_classrooms, announcement_classrooms.c.announcement_id == Announcement.id)
         .join(classroom_students, classroom_students.c.classroom_id == announcement_classrooms.c.classroom_id)
-        .where(classroom_students.c.student_id == student.id)
+        .where(classroom_students.c.student_id == student.id, Announcement.deleted_at.is_(None))
         .distinct()
         .order_by(TeacherProfile.name, TeacherProfile.surname)
     )
@@ -122,7 +122,7 @@ async def list_announcements(
     my_classroom_ids = select(classroom_students.c.classroom_id).where(
         classroom_students.c.student_id == student.id
     )
-    filters = [Announcement.classrooms.any(Classroom.id.in_(my_classroom_ids))]
+    filters = [Announcement.classrooms.any(Classroom.id.in_(my_classroom_ids)), Announcement.deleted_at.is_(None)]
     if teacher_id is not None:
         filters.append(Announcement.teacher_id == teacher_id)
     total = await db.scalar(
@@ -137,6 +137,18 @@ async def list_announcements(
         .offset((page - 1) * page_size)
     )
     announcements = result.scalars().unique().all()
+
+    # Load read statuses for this page in a single query.
+    read_map: dict[int, object] = {}
+    if announcements:
+        reads_result = await db.execute(
+            select(AnnouncementRead).where(
+                AnnouncementRead.announcement_id.in_([a.id for a in announcements]),
+                AnnouncementRead.student_id == student.id,
+            )
+        )
+        read_map = {r.announcement_id: r.read_at for r in reads_result.scalars().all()}
+
     items = [
         StudentAnnouncementOut(
             id=a.id,
@@ -144,10 +156,56 @@ async def list_announcements(
             created_at=a.created_at,
             teacher_name=f"{a.teacher.name} {a.teacher.surname}",
             classrooms=[c.name for c in a.classrooms],
+            is_read=a.id in read_map,
+            read_at=read_map.get(a.id),  # type: ignore[arg-type]
         )
         for a in announcements
     ]
     return Page.build(items=items, total=total or 0, page=page, page_size=page_size)
+
+
+@router.post(
+    "/announcements/{announcement_id}/read",
+    response_model=AcknowledgeOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def acknowledge_announcement(
+    announcement_id: int,
+    student: StudentProfile = Depends(get_current_student),
+    db: AsyncSession = Depends(get_db),
+) -> AcknowledgeOut:
+    """Records a read-confirmation for an announcement the student can see.
+
+    Returns 404 if the announcement doesn't exist or isn't visible to this
+    student. Returns 409 if the student has already confirmed it.
+    """
+    my_classroom_ids = select(classroom_students.c.classroom_id).where(
+        classroom_students.c.student_id == student.id
+    )
+    visible = await db.scalar(
+        select(func.count(Announcement.id)).where(
+            Announcement.id == announcement_id,
+            Announcement.deleted_at.is_(None),
+            Announcement.classrooms.any(Classroom.id.in_(my_classroom_ids)),
+        )
+    )
+    if not visible:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
+
+    existing = await db.scalar(
+        select(AnnouncementRead).where(
+            AnnouncementRead.announcement_id == announcement_id,
+            AnnouncementRead.student_id == student.id,
+        )
+    )
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already acknowledged")
+
+    read = AnnouncementRead(announcement_id=announcement_id, student_id=student.id)
+    db.add(read)
+    await db.commit()
+    await db.refresh(read)
+    return AcknowledgeOut(read_at=read.read_at)
 
 
 @router.get("/grade-teachers", response_model=list[TeacherFilterItem])

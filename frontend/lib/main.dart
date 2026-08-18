@@ -146,7 +146,12 @@ class StudentTrackingApp extends StatelessWidget {
           title: 'Student Tracking App',
           navigatorKey: navigatorKey,
           locale: locale,
-          theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo), useMaterial3: true),
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+            useMaterial3: true,
+            appBarTheme: const AppBarTheme(scrolledUnderElevation: 0),
+            cardTheme: const CardThemeData(elevation: 0),
+          ),
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,

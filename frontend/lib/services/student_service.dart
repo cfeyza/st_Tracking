@@ -36,6 +36,11 @@ class StudentService {
     return Paginated.fromJson(json as Map<String, dynamic>, Announcement.fromJson);
   }
 
+  static Future<DateTime> acknowledgeAnnouncement(int announcementId) async {
+    final json = await ApiClient.post('/student/announcements/$announcementId/read');
+    return DateTime.parse((json as Map<String, dynamic>)['read_at'] as String);
+  }
+
   static Future<List<TeacherFilterItem>> listGradeTeachers() async {
     final json = await ApiClient.get('/student/grade-teachers');
     return (json as List).map((e) => TeacherFilterItem.fromJson(e as Map<String, dynamic>)).toList();

@@ -273,5 +273,22 @@
       "fetched": { "type": "int" },
       "total": { "type": "int" }
     }
+  },
+
+  "markAsRead": "Read & Acknowledge",
+  "acknowledged": "Acknowledged",
+  "viewReaders": "View readers",
+  "announcementReaders": "Readers",
+  "studentsWhoRead": "Have read ({count})",
+  "@studentsWhoRead": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "studentsWhoHaventRead": "Have not read ({count})",
+  "@studentsWhoHaventRead": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
   }
 }

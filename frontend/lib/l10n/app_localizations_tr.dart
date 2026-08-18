@@ -466,4 +466,36 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get deletedAnnouncement => 'Duyuru silindi.';
+
+  @override
+  String studentsListPartial(int fetched, int total) {
+    return '$total öğrencinin yalnızca $fetched tanesi yüklenebildi — bazıları listede görünmeyebilir.';
+  }
+
+  @override
+  String classroomsListPartial(int fetched, int total) {
+    return '$total sınıfın yalnızca $fetched tanesi yüklenebildi — bazıları listede görünmeyebilir.';
+  }
+
+  @override
+  String get markAsRead => 'Oku ve Onayla';
+
+  @override
+  String get acknowledged => 'Okundu';
+
+  @override
+  String get viewReaders => 'Okuyanları gör';
+
+  @override
+  String get announcementReaders => 'Okuma durumu';
+
+  @override
+  String studentsWhoRead(int count) {
+    return 'Okuyanlar ($count)';
+  }
+
+  @override
+  String studentsWhoHaventRead(int count) {
+    return 'Okumayanlar ($count)';
+  }
 }

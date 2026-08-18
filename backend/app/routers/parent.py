@@ -109,7 +109,7 @@ async def list_announcements(
         .join(announcement_classrooms, announcement_classrooms.c.announcement_id == Announcement.id)
         .join(classroom_students, classroom_students.c.classroom_id == announcement_classrooms.c.classroom_id)
         .join(StudentProfile, StudentProfile.id == classroom_students.c.student_id)
-        .where(student_condition)
+        .where(student_condition, Announcement.deleted_at.is_(None))
     ).subquery()
 
     total = await db.scalar(select(func.count()).select_from(pairs))

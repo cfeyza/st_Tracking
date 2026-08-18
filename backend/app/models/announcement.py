@@ -20,8 +20,21 @@ class Announcement(Base):
     teacher_id: Mapped[int] = mapped_column(ForeignKey("teacher_profiles.id", ondelete="CASCADE"), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     teacher: Mapped["TeacherProfile"] = relationship(back_populates="announcements")
     classrooms: Mapped[list["Classroom"]] = relationship(
         secondary=announcement_classrooms, back_populates="announcements"
     )
+
+
+class AnnouncementRead(Base):
+    __tablename__ = "announcement_reads"
+
+    announcement_id: Mapped[int] = mapped_column(
+        ForeignKey("announcements.id", ondelete="CASCADE"), primary_key=True
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("student_profiles.id", ondelete="CASCADE"), primary_key=True
+    )
+    read_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

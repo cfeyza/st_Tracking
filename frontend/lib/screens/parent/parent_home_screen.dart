@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../../models/announcement.dart';
@@ -6,7 +7,9 @@ import '../../models/paginated.dart';
 import '../../models/parent.dart';
 import '../../services/api_client.dart';
 import '../../services/parent_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/app_drawer.dart';
+import '../../widgets/meta_badge.dart';
 import '../../widgets/pagination_bar.dart';
 
 class ParentHomeScreen extends StatefulWidget {
@@ -56,12 +59,42 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
     });
   }
 
+  void _showFullTextDialog(String text) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final dl10n = AppLocalizations.of(dialogContext);
+        return AlertDialog(
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          content: SingleChildScrollView(
+            child: Text(
+              text,
+              style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(height: 1.6),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(dl10n.ok),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final cs = Theme.of(context).colorScheme;
     final showFilter = _students != null && _students!.length > 1;
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.parent)),
+      backgroundColor: cs.surfaceContainerLowest,
+      appBar: AppBar(
+        title: Text(l10n.parent),
+        backgroundColor: cs.surface,
+      ),
       drawer: AppDrawer(
         onProfileTap: () => Navigator.of(context).pushNamed('/parent/profile'),
         actions: [
@@ -85,28 +118,31 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         onRefresh: _refresh,
         child: Column(
           children: [
-            if (showFilter)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: Row(
-                  children: [
-                    DropdownButton<int?>(
-                      value: _selectedStudentId,
-                      hint: Text(l10n.allStudents),
-                      items: [
-                        DropdownMenuItem(value: null, child: Text(l10n.allStudents)),
-                        for (final s in _students!)
-                          DropdownMenuItem(
-                            value: s.id,
-                            child: Text('${s.name} ${s.surname}'),
-                          ),
-                      ],
-                      onChanged: _onStudentChanged,
-                    ),
+            if (showFilter) ...[
+              Container(
+                color: cs.surface,
+                padding: AppInsets.filterBar(context),
+                child: DropdownButtonFormField<int?>(
+                  value: _selectedStudentId,
+                  decoration: InputDecoration(
+                    labelText: l10n.student,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text(l10n.allStudents)),
+                    for (final s in _students!)
+                      DropdownMenuItem(
+                        value: s.id,
+                        child: Text('${s.name} ${s.surname}'),
+                      ),
                   ],
+                  onChanged: _onStudentChanged,
                 ),
               ),
-            if (showFilter) const Divider(height: 1),
+              Divider(height: 1, color: cs.outlineVariant),
+            ],
             Expanded(
               child: FutureBuilder<Paginated<Announcement>>(
                 future: _future,
@@ -129,44 +165,112 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   if (announcements.isEmpty) {
                     return ListView(children: [
                       Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(l10n.noAnnouncementsYet),
+                        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                        child: Column(
+                          children: [
+                            Icon(Icons.campaign_outlined,
+                                size: 40, color: cs.onSurfaceVariant.withAlpha(120)),
+                            const SizedBox(height: 8),
+                            Text(l10n.noAnnouncementsYet,
+                                style: TextStyle(color: cs.onSurfaceVariant)),
+                          ],
+                        ),
                       ),
                     ]);
                   }
                   return Column(
                     children: [
                       Expanded(
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(12),
+                        child: ListView.builder(
+                          padding: AppInsets.page(context),
                           itemCount: announcements.length,
-                          separatorBuilder: (_, _) => const Divider(),
                           itemBuilder: (context, index) {
                             final a = announcements[index];
-                            return Card(
-                              child: ListTile(
-                                title: Text(a.text),
-                                subtitle: Text(
-                                  '${l10n.parentAnnouncementMeta(a.studentName ?? '', a.teacherName ?? '', a.classrooms.join(", "))}\n'
-                                  '${a.createdAt.toLocal().toString().split('.').first}',
-                                ),
-                                isThreeLine: true,
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _ParentAnnouncementCard(
+                                announcement: a,
+                                onTap: () => _showFullTextDialog(a.text),
                               ),
                             );
                           },
                         ),
                       ),
-                      PaginationBar(
-                        page: result.page,
-                        totalPages: result.totalPages,
-                        onPageChange: _goToPage,
-                      ),
+                      if (result.totalPages > 1)
+                        PaginationBar(
+                          page: result.page,
+                          totalPages: result.totalPages,
+                          onPageChange: _goToPage,
+                        ),
                     ],
                   );
                 },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ParentAnnouncementCard extends StatelessWidget {
+  final Announcement announcement;
+  final VoidCallback onTap;
+
+  const _ParentAnnouncementCard({required this.announcement, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final dateStr = DateFormat('d MMM y · HH:mm').format(announcement.createdAt.toLocal());
+
+    return Card(
+      shape: AppCard.shape(cs),
+      color: cs.surface,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                announcement.text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tt.bodyMedium?.copyWith(height: 1.45),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        if (announcement.studentName != null &&
+                            announcement.studentName!.isNotEmpty)
+                          MetaBadge.student(announcement.studentName!),
+                        if (announcement.teacherName != null &&
+                            announcement.teacherName!.isNotEmpty)
+                          MetaBadge.teacher(announcement.teacherName!),
+                        for (final c in announcement.classrooms) MetaBadge.classroom(c),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    dateStr,
+                    style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

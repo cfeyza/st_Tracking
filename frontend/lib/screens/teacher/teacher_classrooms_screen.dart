@@ -5,6 +5,9 @@ import '../../models/classroom.dart';
 import '../../models/paginated.dart';
 import '../../services/api_client.dart';
 import '../../services/teacher_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/pagination_bar.dart';
 
 class TeacherClassroomsScreen extends StatefulWidget {
   const TeacherClassroomsScreen({super.key});
@@ -46,18 +49,22 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
           title: Text(dl10n.deleteClassroomTitle),
           content: Text(dl10n.deleteClassroomConfirm(classroom.name)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(dl10n.cancel)),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(dl10n.delete)),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(dl10n.cancel)),
+            FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(dl10n.delete)),
           ],
         );
       },
     );
     if (confirmed != true) return;
-
     try {
       await TeacherService.deleteClassroom(classroom.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.deletedClassroom(classroom.name))));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.deletedClassroom(classroom.name))));
       if (_page > 1) _page = 1;
       _reload();
     } on ApiException catch (e) {
@@ -69,8 +76,14 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.myClassrooms)),
+      backgroundColor: cs.surfaceContainerLowest,
+      appBar: AppBar(
+        title: Text(l10n.myClassrooms),
+        backgroundColor: cs.surface,
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.of(context).pushNamed('/teacher/add-classroom');
@@ -85,44 +98,41 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+            return Center(
+                child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
           }
           final result = snapshot.data!;
           final classrooms = result.items;
-          if (classrooms.isEmpty) {
-            return Center(child: Text(l10n.noClassroomsYet));
-          }
           return Column(
             children: [
               Expanded(
-                child: ListView.separated(
-                  itemCount: classrooms.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final classroom = classrooms[index];
-                    return ListTile(
-                      title: Text(classroom.name),
-                      subtitle: Text(l10n.studentCount(classroom.studentCount)),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: l10n.deleteClassroomTooltip,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _confirmDelete(classroom),
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
+                child: classrooms.isEmpty
+                    ? EmptyState(icon: Icons.class_outlined, message: l10n.noClassroomsYet)
+                    : ListView.builder(
+                        padding: AppInsets.listWithFab(context),
+                        itemCount: classrooms.length,
+                        itemBuilder: (context, index) {
+                          final c = classrooms[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _ClassroomCard(
+                              classroom: c,
+                              onDelete: () => _confirmDelete(c),
+                              onTap: () => Navigator.of(context).pushNamed(
+                                '/teacher/students',
+                                arguments: {'classroomId': c.id, 'classroomName': c.name},
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      onTap: () => Navigator.of(context).pushNamed(
-                        '/teacher/students',
-                        arguments: {'classroomId': classroom.id, 'classroomName': classroom.name},
-                      ),
-                    );
-                  },
-                ),
               ),
-              _PaginationBar(page: result.page, totalPages: result.totalPages, onPageChange: _goToPage),
+              if (result.totalPages > 1)
+                PaginationBar(
+                  page: result.page,
+                  totalPages: result.totalPages,
+                  onPageChange: _goToPage,
+                ),
             ],
           );
         },
@@ -131,31 +141,69 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
   }
 }
 
-class _PaginationBar extends StatelessWidget {
-  final int page;
-  final int totalPages;
-  final ValueChanged<int> onPageChange;
+class _ClassroomCard extends StatelessWidget {
+  final ClassroomOut classroom;
+  final VoidCallback onDelete;
+  final VoidCallback onTap;
 
-  const _PaginationBar({required this.page, required this.totalPages, required this.onPageChange});
+  const _ClassroomCard({required this.classroom, required this.onDelete, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: page > 1 ? () => onPageChange(page - 1) : null,
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Card(
+      shape: AppCard.shape(cs),
+      color: cs.surface,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.class_outlined, color: cs.primary, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(classroom.name,
+                        style: tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text(l10n.studentCount(classroom.studentCount),
+                        style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              PopupMenuButton<bool>(
+                onSelected: (delete) { if (delete) onDelete(); },
+                icon: Icon(Icons.more_vert, size: 20, color: cs.onSurfaceVariant),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: true,
+                    child: Row(children: [
+                      Icon(Icons.delete_outline, size: 20, color: cs.error),
+                      const SizedBox(width: 12),
+                      Text(l10n.deleteClassroomTooltip,
+                          style: TextStyle(color: cs.error)),
+                    ]),
+                  ),
+                ],
+              ),
+              Icon(Icons.chevron_right, color: cs.onSurfaceVariant, size: 20),
+            ],
           ),
-          Text(l10n.pageXofY(page, totalPages)),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: page < totalPages ? () => onPageChange(page + 1) : null,
-          ),
-        ],
+        ),
       ),
     );
   }

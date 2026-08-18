@@ -478,4 +478,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deletedAnnouncement => 'Announcement deleted.';
+
+  @override
+  String studentsListPartial(int fetched, int total) {
+    return 'Could only load $fetched of $total students — some may be missing from the list.';
+  }
+
+  @override
+  String classroomsListPartial(int fetched, int total) {
+    return 'Could only load $fetched of $total classrooms — some may be missing from the list.';
+  }
+
+  @override
+  String get markAsRead => 'Read & Acknowledge';
+
+  @override
+  String get acknowledged => 'Acknowledged';
+
+  @override
+  String get viewReaders => 'View readers';
+
+  @override
+  String get announcementReaders => 'Readers';
+
+  @override
+  String studentsWhoRead(int count) {
+    return 'Have read ($count)';
+  }
+
+  @override
+  String studentsWhoHaventRead(int count) {
+    return 'Have not read ($count)';
+  }
 }

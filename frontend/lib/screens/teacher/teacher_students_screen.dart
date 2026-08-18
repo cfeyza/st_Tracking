@@ -6,16 +6,19 @@ import '../../models/paginated.dart';
 import '../../models/teacher.dart';
 import '../../services/api_client.dart';
 import '../../services/teacher_service.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/pagination_bar.dart';
 
 Map<String, String> _buildStudentSortOptions(AppLocalizations l10n) => {
-  'classroom': l10n.classroom,
-  'name': l10n.name,
-  'surname': l10n.surname,
-  'school_id': l10n.schoolId,
-};
+      'classroom': l10n.classroom,
+      'name': l10n.name,
+      'surname': l10n.surname,
+      'school_id': l10n.schoolId,
+    };
 
 class TeacherStudentsScreen extends StatefulWidget {
-  const TeacherStudentsScreen({super.key, this.initialClassroomId, this.initialClassroomName});
+  const TeacherStudentsScreen(
+      {super.key, this.initialClassroomId, this.initialClassroomName});
 
   final int? initialClassroomId;
   final String? initialClassroomName;
@@ -53,11 +56,11 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
       if (result.total > result.items.length) {
         final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.classroomsListPartial(fetched: result.items.length, total: result.total))),
+          SnackBar(content: Text(l10n.classroomsListPartial(result.items.length, result.total))),
         );
       }
     } on ApiException {
-      // Filter dropdown just stays empty; the list itself still loads.
+      // Filter dropdown stays empty; list still loads.
     }
   }
 
@@ -95,20 +98,22 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
           title: Text(dl10n.removeStudentTitle),
           content: Text(dl10n.removeStudentConfirm(studentName)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(dl10n.cancel)),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(dl10n.remove)),
+            TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(dl10n.cancel)),
+            FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(dl10n.remove)),
           ],
         );
       },
     );
     if (confirmed != true) return;
-
     try {
       await TeacherService.deleteStudent(student.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.removedStudent(studentName))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.removedStudent(studentName))));
       if (_page > 1) _page = 1;
       _reload();
     } on ApiException catch (e) {
@@ -117,33 +122,48 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
     }
   }
 
+  void _navigateToGrades(StudentListItem s) {
+    Navigator.of(context).pushNamed(
+      '/teacher/grades',
+      arguments: {'studentId': s.id, 'studentName': '${s.name} ${s.surname}'},
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final cs = Theme.of(context).colorScheme;
     final sortOptions = _buildStudentSortOptions(l10n);
+
     return Scaffold(
+      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(
           widget.initialClassroomName == null
               ? l10n.myStudents
               : l10n.myStudentsWithClassroom(widget.initialClassroomName!),
         ),
+        backgroundColor: cs.surface,
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
+          // Filter bar
+          Container(
+            color: cs.surface,
+            padding: AppInsets.filterBar(context),
             child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
+              spacing: 8,
+              runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 DropdownButton<int?>(
                   value: _classrooms.any((c) => c.id == _classroomId) ? _classroomId : null,
                   hint: Text(l10n.filterAllClassrooms),
+                  underline: const SizedBox.shrink(),
                   items: [
                     DropdownMenuItem(value: null, child: Text(l10n.allClassrooms)),
-                    for (final c in _classrooms) DropdownMenuItem(value: c.id, child: Text(c.name)),
+                    for (final c in _classrooms)
+                      DropdownMenuItem(value: c.id, child: Text(c.name)),
                   ],
                   onChanged: (value) {
                     _classroomId = value;
@@ -152,9 +172,10 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                 ),
                 DropdownButton<String>(
                   value: sortBy,
+                  underline: const SizedBox.shrink(),
                   items: [
-                    for (final entry in sortOptions.entries)
-                      DropdownMenuItem(value: entry.key, child: Text(l10n.sortBy(entry.value))),
+                    for (final e in sortOptions.entries)
+                      DropdownMenuItem(value: e.key, child: Text(l10n.sortBy(e.value))),
                   ],
                   onChanged: (value) {
                     sortBy = value!;
@@ -172,7 +193,9 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: cs.outlineVariant),
+
+          // Content
           Expanded(
             child: FutureBuilder<Paginated<StudentListItem>>(
               future: _future,
@@ -181,65 +204,132 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+                  return Center(
+                    child: Text(
+                        '${(snapshot.error as ApiException?)?.message ?? snapshot.error}'),
+                  );
                 }
                 final result = snapshot.data!;
                 final students = result.items;
                 if (students.isEmpty) {
                   return Center(child: Text(l10n.noStudentsFound));
                 }
-                return Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            showCheckboxColumn: false,
-                            columns: [
-                              DataColumn(label: Text(l10n.name)),
-                              DataColumn(label: Text(l10n.surname)),
-                              DataColumn(label: Text(l10n.schoolId)),
-                              DataColumn(label: Text(l10n.classroomsColumn)),
-                              DataColumn(label: Text(l10n.status)),
-                              const DataColumn(label: Text('')),
-                            ],
-                            rows: [
-                              for (final s in students)
-                                DataRow(
-                                  onSelectChanged: (_) => Navigator.of(context).pushNamed(
-                                    '/teacher/grades',
-                                    arguments: {'studentId': s.id, 'studentName': '${s.name} ${s.surname}'},
-                                  ),
-                                  cells: [
-                                    DataCell(Text(s.name)),
-                                    DataCell(Text(s.surname)),
-                                    DataCell(Text(s.schoolId.toString())),
-                                    DataCell(Text(s.classrooms.join(', '))),
-                                    DataCell(
-                                      Chip(
-                                        label: Text(s.isRegistered ? l10n.registered : l10n.pending),
-                                        backgroundColor:
-                                            s.isRegistered ? Colors.green.shade100 : Colors.orange.shade100,
-                                      ),
-                                    ),
-                                    DataCell(
-                                      IconButton(
-                                        tooltip: l10n.removeStudentTooltip,
-                                        icon: const Icon(Icons.delete_outline),
-                                        onPressed: () => _confirmDelete(s),
-                                      ),
-                                    ),
-                                  ],
+                return LayoutBuilder(builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < Bp.sm;
+                  if (isMobile) {
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            padding: AppInsets.page(context),
+                            itemCount: students.length,
+                            itemBuilder: (_, i) {
+                              final s = students[i];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _StudentCard(
+                                  student: s,
+                                  onDelete: () => _confirmDelete(s),
+                                  onTap: () => _navigateToGrades(s),
                                 ),
-                            ],
+                              );
+                            },
+                          ),
+                        ),
+                        if (result.totalPages > 1)
+                          PaginationBar(
+                            page: result.page,
+                            totalPages: result.totalPages,
+                            onPageChange: _goToPage,
+                          ),
+                      ],
+                    );
+                  }
+                  // Tablet / desktop: DataTable
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding: AppInsets.page(context, top: 16, bottom: 16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                showCheckboxColumn: false,
+                                columns: [
+                                  DataColumn(label: Text(l10n.name)),
+                                  DataColumn(label: Text(l10n.surname)),
+                                  DataColumn(label: Text(l10n.schoolId)),
+                                  DataColumn(label: Text(l10n.classroomsColumn)),
+                                  DataColumn(label: Text(l10n.status)),
+                                  const DataColumn(label: Text('')),
+                                ],
+                                rows: [
+                                  for (final s in students)
+                                    DataRow(
+                                      onSelectChanged: (_) => _navigateToGrades(s),
+                                      cells: [
+                                        DataCell(Text(s.name)),
+                                        DataCell(Text(s.surname)),
+                                        DataCell(Text(s.schoolId.toString())),
+                                        DataCell(Text(s.classrooms.join(', '))),
+                                        DataCell(
+                                          Chip(
+                                            label: Text(s.isRegistered
+                                                ? l10n.registered
+                                                : l10n.pending),
+                                            backgroundColor: s.isRegistered
+                                                ? Colors.green.shade100
+                                                : Colors.orange.shade100,
+                                          ),
+                                        ),
+                                        DataCell(
+                                          PopupMenuButton<bool>(
+                                            onSelected: (del) {
+                                              if (del) _confirmDelete(s);
+                                            },
+                                            icon: Icon(Icons.more_vert,
+                                                size: 20,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant),
+                                            itemBuilder: (context) => [
+                                              PopupMenuItem(
+                                                value: true,
+                                                child: Row(children: [
+                                                  Icon(Icons.person_remove_outlined,
+                                                      size: 20,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .error),
+                                                  const SizedBox(width: 12),
+                                                  Text(l10n.removeStudentTooltip,
+                                                      style: TextStyle(
+                                                          color: Theme.of(context)
+                                                              .colorScheme
+                                                              .error)),
+                                                ]),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    _PaginationBar(page: result.page, totalPages: result.totalPages, onPageChange: _goToPage),
-                  ],
-                );
+                      if (result.totalPages > 1)
+                        PaginationBar(
+                          page: result.page,
+                          totalPages: result.totalPages,
+                          onPageChange: _goToPage,
+                        ),
+                    ],
+                  );
+                });
               },
             ),
           ),
@@ -249,31 +339,93 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
   }
 }
 
-class _PaginationBar extends StatelessWidget {
-  final int page;
-  final int totalPages;
-  final ValueChanged<int> onPageChange;
+// Mobile card for a single student
+class _StudentCard extends StatelessWidget {
+  final StudentListItem student;
+  final VoidCallback onDelete;
+  final VoidCallback onTap;
 
-  const _PaginationBar({required this.page, required this.totalPages, required this.onPageChange});
+  const _StudentCard({
+    required this.student,
+    required this.onDelete,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: page > 1 ? () => onPageChange(page - 1) : null,
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Card(
+      shape: AppCard.shape(cs),
+      color: cs.surface,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.person_outline, color: cs.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${student.name} ${student.surname}',
+                      style: tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      student.classrooms.isNotEmpty
+                          ? '${student.classrooms.join(', ')} · ${l10n.schoolId}: ${student.schoolId}'
+                          : '${l10n.schoolId}: ${student.schoolId}',
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: student.isRegistered
+                            ? Colors.green.shade100
+                            : Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        student.isRegistered ? l10n.registered : l10n.pending,
+                        style: tt.labelSmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<bool>(
+                onSelected: (del) { if (del) onDelete(); },
+                icon: Icon(Icons.more_vert, size: 20, color: cs.onSurfaceVariant),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: true,
+                    child: Row(children: [
+                      Icon(Icons.person_remove_outlined, size: 20, color: cs.error),
+                      const SizedBox(width: 12),
+                      Text(l10n.removeStudentTooltip,
+                          style: TextStyle(color: cs.error)),
+                    ]),
+                  ),
+                ],
+              ),
+            ],
           ),
-          Text(l10n.pageXofY(page, totalPages)),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: page < totalPages ? () => onPageChange(page + 1) : null,
-          ),
-        ],
+        ),
       ),
     );
   }

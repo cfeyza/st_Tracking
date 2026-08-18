@@ -9,13 +9,13 @@ from sqlalchemy.orm import selectinload
 from app.constants import DEFAULT_PAGE_SIZE
 from app.db.session import get_db
 from app.deps import get_current_teacher
-from app.models.announcement import Announcement
+from app.models.announcement import Announcement, AnnouncementRead, announcement_classrooms
 from app.models.classroom import Classroom, classroom_students
 from app.models.grade import Grade
 from app.models.student import StudentProfile
 from app.models.teacher import TeacherProfile, teacher_students
 from app.models.user import User
-from app.schemas.announcement import AnnouncementCreate, AnnouncementOut
+from app.schemas.announcement import AnnouncementCreate, AnnouncementOut, AnnouncementReadersOut, StudentReaderInfo
 from app.schemas.classroom import (
     ClassroomCreate,
     ClassroomOut,
@@ -471,13 +471,67 @@ async def delete_announcement(
         select(Announcement).where(
             Announcement.id == announcement_id,
             Announcement.teacher_id == teacher.id,
+            Announcement.deleted_at.is_(None),
         )
     )
     announcement = result.scalar_one_or_none()
     if announcement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
-    await db.delete(announcement)
+    announcement.deleted_at = datetime.now(timezone.utc)
     await db.commit()
+
+
+@router.get("/announcements/{announcement_id}/readers", response_model=AnnouncementReadersOut)
+async def get_announcement_readers(
+    announcement_id: int,
+    teacher: TeacherProfile = Depends(get_current_teacher),
+    db: AsyncSession = Depends(get_db),
+) -> AnnouncementReadersOut:
+    """Returns the read/unread split for all students in the announcement's
+    target classrooms. Only works for announcements owned by this teacher.
+    """
+    announcement = await db.scalar(
+        select(Announcement).where(
+            Announcement.id == announcement_id,
+            Announcement.teacher_id == teacher.id,
+            Announcement.deleted_at.is_(None),
+        )
+    )
+    if announcement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
+
+    # All distinct students enrolled in the announcement's target classrooms.
+    students_result = await db.execute(
+        select(StudentProfile)
+        .join(classroom_students, classroom_students.c.student_id == StudentProfile.id)
+        .join(
+            announcement_classrooms,
+            announcement_classrooms.c.classroom_id == classroom_students.c.classroom_id,
+        )
+        .where(announcement_classrooms.c.announcement_id == announcement_id)
+        .distinct()
+        .order_by(StudentProfile.surname, StudentProfile.name)
+    )
+    all_students = students_result.scalars().unique().all()
+
+    reads_result = await db.execute(
+        select(AnnouncementRead).where(AnnouncementRead.announcement_id == announcement_id)
+    )
+    read_map = {r.student_id: r.read_at for r in reads_result.scalars().all()}
+
+    readers: list[StudentReaderInfo] = []
+    non_readers: list[StudentReaderInfo] = []
+    for s in all_students:
+        if s.id in read_map:
+            readers.append(StudentReaderInfo(id=s.id, name=s.name, surname=s.surname, read_at=read_map[s.id]))
+        else:
+            non_readers.append(StudentReaderInfo(id=s.id, name=s.name, surname=s.surname))
+
+    return AnnouncementReadersOut(
+        announcement_id=announcement_id,
+        readers=readers,
+        non_readers=non_readers,
+    )
 
 
 @router.get("/announcements", response_model=Page[AnnouncementOut])
@@ -488,12 +542,14 @@ async def list_announcements(
     db: AsyncSession = Depends(get_db),
 ) -> Page[AnnouncementOut]:
     total = await db.scalar(
-        select(func.count(Announcement.id)).where(Announcement.teacher_id == teacher.id)
+        select(func.count(Announcement.id)).where(
+            Announcement.teacher_id == teacher.id, Announcement.deleted_at.is_(None)
+        )
     )
     result = await db.execute(
         select(Announcement)
         .options(selectinload(Announcement.classrooms))
-        .where(Announcement.teacher_id == teacher.id)
+        .where(Announcement.teacher_id == teacher.id, Announcement.deleted_at.is_(None))
         .order_by(Announcement.created_at.desc())
         .limit(page_size)
         .offset((page - 1) * page_size)

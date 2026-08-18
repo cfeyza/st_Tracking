@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:student_tracking_app/l10n/app_localizations.dart';
 
+/// Compact pagination strip shown below paginated lists.
 class PaginationBar extends StatelessWidget {
   final int page;
   final int totalPages;
@@ -16,30 +17,71 @@ class PaginationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: cs.outlineVariant, width: 0.5)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            icon: const Icon(Icons.first_page),
-            onPressed: page > 1 ? () => onPageChange(1) : null,
+          _NavBtn(
+            icon: Icons.first_page,
+            enabled: page > 1,
+            onPressed: () => onPageChange(1),
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: page > 1 ? () => onPageChange(page - 1) : null,
+          _NavBtn(
+            icon: Icons.chevron_left,
+            enabled: page > 1,
+            onPressed: () => onPageChange(page - 1),
           ),
-          Text(l10n.pageXofY(page, totalPages)),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: page < totalPages ? () => onPageChange(page + 1) : null,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              l10n.pageXofY(page, totalPages),
+              style: tt.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.last_page),
-            onPressed: page < totalPages ? () => onPageChange(totalPages) : null,
+          _NavBtn(
+            icon: Icons.chevron_right,
+            enabled: page < totalPages,
+            onPressed: () => onPageChange(page + 1),
+          ),
+          _NavBtn(
+            icon: Icons.last_page,
+            enabled: page < totalPages,
+            onPressed: () => onPageChange(totalPages),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NavBtn extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  const _NavBtn({
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon),
+      iconSize: 20,
+      visualDensity: VisualDensity.compact,
+      onPressed: enabled ? onPressed : null,
     );
   }
 }

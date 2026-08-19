@@ -124,9 +124,30 @@ class TeacherService {
     await ApiClient.delete('/teacher/announcements/$announcementId');
   }
 
+  static Future<List<StudentReaderInfo>> _fetchAllReaderPages(String base, String filter) async {
+    final items = <StudentReaderInfo>[];
+    int page = 1;
+    int totalPages = 1;
+    do {
+      final json = await ApiClient.get('$base?filter=$filter&page=$page&page_size=100') as Map<String, dynamic>;
+      items.addAll((json['items'] as List).map((e) => StudentReaderInfo.fromJson(e as Map<String, dynamic>)));
+      totalPages = json['total_pages'] as int;
+      page++;
+    } while (page <= totalPages);
+    return items;
+  }
+
   static Future<AnnouncementReaders> getAnnouncementReaders(int announcementId) async {
-    final json = await ApiClient.get('/teacher/announcements/$announcementId/readers');
-    return AnnouncementReaders.fromJson(json as Map<String, dynamic>);
+    final base = '/teacher/announcements/$announcementId/readers';
+    final results = await Future.wait([
+      _fetchAllReaderPages(base, 'readers'),
+      _fetchAllReaderPages(base, 'non_readers'),
+    ]);
+    return AnnouncementReaders(
+      announcementId: announcementId,
+      readers: results[0],
+      nonReaders: results[1],
+    );
   }
 
   static Future<Paginated<Grade>> listGrades({

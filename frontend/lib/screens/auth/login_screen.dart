@@ -132,9 +132,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Welcome back',
-                        style: TextStyle(
+                      Text(
+                        l10n.welcomeBack,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
                           color: AppColors.deepTeal,
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -143,6 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 6),
                       Text(
                         l10n.logIn,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.deepTeal.withOpacity(0.55),
                           fontSize: 14,

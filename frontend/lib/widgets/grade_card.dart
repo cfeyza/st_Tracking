@@ -17,7 +17,8 @@ class GradeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final dateStr = DateFormat('d MMM y').format(grade.createdAt.toLocal());
+    final locale = Localizations.localeOf(context).toString();
+    final dateStr = DateFormat('d MMM y', locale).format(grade.createdAt.toLocal());
 
     // Teacher view: show student name. Student/parent view: show teacher name.
     final firstMeta = grade.studentName ?? grade.teacherName;

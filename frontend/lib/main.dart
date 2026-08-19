@@ -56,8 +56,27 @@ void main() async {
   runApp(const StudentTrackingApp());
 }
 
-class StudentTrackingApp extends StatelessWidget {
+class StudentTrackingApp extends StatefulWidget {
   const StudentTrackingApp({super.key});
+
+  @override
+  State<StudentTrackingApp> createState() => _StudentTrackingAppState();
+}
+
+class _StudentTrackingAppState extends State<StudentTrackingApp> {
+  @override
+  void initState() {
+    super.initState();
+    localeNotifier.addListener(_onLocaleChanged);
+  }
+
+  @override
+  void dispose() {
+    localeNotifier.removeListener(_onLocaleChanged);
+    super.dispose();
+  }
+
+  void _onLocaleChanged() => setState(() {});
 
   static Route<dynamic> _onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -138,70 +157,66 @@ class StudentTrackingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Locale>(
-      valueListenable: localeNotifier,
-      builder: (context, locale, _) {
-        return MaterialApp(
-          title: 'Student Tracking App',
-          navigatorKey: navigatorKey,
-          locale: locale,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF00BCD4),
-              brightness: Brightness.light,
+    return MaterialApp(
+      title: 'Student Tracking App',
+      navigatorKey: navigatorKey,
+      locale: localeNotifier.value,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF00BCD4),
+          brightness: Brightness.light,
+        ),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          scrolledUnderElevation: 0,
+          elevation: 0,
+          backgroundColor: Color(0xFF006064),
+          foregroundColor: Colors.white,
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF0FDFE),
+        cardTheme: const CardThemeData(elevation: 0),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: Color(0xFF00BCD4),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
             ),
-            useMaterial3: true,
-            appBarTheme: const AppBarTheme(
-              scrolledUnderElevation: 0,
-              elevation: 0,
-              backgroundColor: Color(0xFF006064),
-              foregroundColor: Colors.white,
-              iconTheme: IconThemeData(color: Colors.white),
-            ),
-            cardTheme: const CardThemeData(elevation: 0),
-            filledButtonTheme: FilledButtonThemeData(
-              style: FilledButton.styleFrom(
-                backgroundColor: Color(0xFF00BCD4),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(16)),
-                ),
-                textStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-            ),
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: Color(0xFFF0FDFE),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: Color(0xFFB2EBF2), width: 1.5),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: Color(0xFF00BCD4), width: 2),
-              ),
-            ),
+            textStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('en'),
-            Locale('tr'),
-          ],
-          initialRoute: '/',
-          onGenerateRoute: _onGenerateRoute,
-          debugShowCheckedModeBanner: false,
-        );
-      },
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Color(0xFFF0FDFE),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Color(0xFFB2EBF2), width: 1.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Color(0xFF00BCD4), width: 2),
+          ),
+        ),
+      ),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('tr'),
+      ],
+      initialRoute: '/',
+      onGenerateRoute: _onGenerateRoute,
+      debugShowCheckedModeBanner: false,
     );
   }
 }

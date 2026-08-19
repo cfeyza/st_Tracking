@@ -18,6 +18,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get logOut => 'Çıkış yap';
 
   @override
+  String get welcomeBack => 'Tekrar hoş geldiniz';
+
+  @override
+  String get viewProfile => 'Profili görüntüle';
+
+  @override
   String get register => 'Kayıt ol';
 
   @override

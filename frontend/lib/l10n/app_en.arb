@@ -5,6 +5,8 @@
 
   "logIn": "Log in",
   "logOut": "Log out",
+  "welcomeBack": "Welcome back",
+  "viewProfile": "View profile",
   "register": "Register",
   "cancel": "Cancel",
   "add": "Add",

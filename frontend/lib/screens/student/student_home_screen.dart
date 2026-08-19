@@ -126,7 +126,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final showFilter = _teachers != null && _teachers!.length > 1;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.student),
       ),
@@ -148,7 +147,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          Column(
         children: [
           if (showFilter) ...[
             Container(
@@ -247,6 +249,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
         ],
       ),
+        ],
+      ),
     );
   }
 }
@@ -271,7 +275,7 @@ class _StudentAnnouncementCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final dateStr = DateFormat('d MMM y · HH:mm').format(announcement.createdAt.toLocal());
+    final dateStr = DateFormat('d MMM · HH:mm', Localizations.localeOf(context).toString()).format(announcement.createdAt.toLocal());
 
     return Card(
       shape: AppCard.shape(cs),
@@ -280,76 +284,123 @@ class _StudentAnnouncementCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                announcement.text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tt.bodyMedium?.copyWith(height: 1.45),
+              // Icon box — filled teal if unread, muted if read
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isRead
+                        ? cs.onSurface.withOpacity(0.06)
+                        : AppColors.primaryCyan.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.campaign_rounded,
+                    size: 18,
+                    color: isRead
+                        ? cs.onSurfaceVariant
+                        : AppColors.primaryCyan,
+                  ),
+                ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        if (announcement.teacherName != null)
-                          MetaBadge.teacher(announcement.teacherName!),
-                        for (final c in announcement.classrooms) MetaBadge.classroom(c),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    dateStr,
-                    style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              if (!isRead)
-                GestureDetector(
-                  onTap: onAcknowledge,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: cs.primary, width: 1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle_outline, size: 16, color: cs.primary),
-                        const SizedBox(width: 6),
-                        Text(
-                          l10n.markAsRead,
-                          style: tt.labelMedium?.copyWith(color: cs.primary),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+              const SizedBox(width: 12),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.check_circle, size: 14, color: cs.primary),
-                    const SizedBox(width: 4),
                     Text(
-                      readAt != null
-                          ? '${l10n.acknowledged} · ${DateFormat('d MMM y · HH:mm').format(readAt!.toLocal())}'
-                          : l10n.acknowledged,
-                      style: tt.labelSmall?.copyWith(color: cs.primary),
+                      announcement.text,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: tt.bodyMedium?.copyWith(
+                        height: 1.4,
+                        color: isRead ? cs.onSurfaceVariant : null,
+                      ),
                     ),
+                    const SizedBox(height: 5),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            children: [
+                              if (announcement.teacherName != null)
+                                MetaBadge.teacher(announcement.teacherName!),
+                              for (final c in announcement.classrooms)
+                                MetaBadge.classroom(c),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (isRead)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_rounded,
+                                  size: 12, color: AppColors.primaryCyan),
+                              const SizedBox(width: 3),
+                              Text(
+                                readAt != null
+                                    ? DateFormat('d MMM · HH:mm', Localizations.localeOf(context).toString())
+                                        .format(readAt!.toLocal())
+                                    : l10n.acknowledged,
+                                style: tt.labelSmall
+                                    ?.copyWith(color: AppColors.primaryCyan),
+                              ),
+                            ],
+                          )
+                        else
+                          Text(dateStr,
+                              style: tt.labelSmall
+                                  ?.copyWith(color: cs.onSurfaceVariant)),
+                      ],
+                    ),
+                    // Mark-as-read: compact chip, only when unread
+                    if (!isRead) ...[
+                      const SizedBox(height: 7),
+                      GestureDetector(
+                        onTap: onAcknowledge,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryCyan.withOpacity(0.08),
+                            border: Border.all(
+                                color: AppColors.primaryCyan.withOpacity(0.35),
+                                width: 1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_outline_rounded,
+                                  size: 13, color: AppColors.primaryCyan),
+                              const SizedBox(width: 5),
+                              Text(
+                                l10n.markAsRead,
+                                style: tt.labelSmall?.copyWith(
+                                  color: AppColors.primaryCyan,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
+              ),
             ],
           ),
         ),

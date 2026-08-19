@@ -116,6 +116,18 @@ abstract class AppLocalizations {
   /// **'Log out'**
   String get logOut;
 
+  /// No description provided for @welcomeBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome back'**
+  String get welcomeBack;
+
+  /// No description provided for @viewProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'View profile'**
+  String get viewProfile;
+
   /// No description provided for @register.
   ///
   /// In en, this message translates to:

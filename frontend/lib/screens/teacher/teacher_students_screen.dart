@@ -136,7 +136,6 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
     final sortOptions = _buildStudentSortOptions(l10n);
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(
           widget.initialClassroomName == null
@@ -144,7 +143,10 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
               : l10n.myStudentsWithClassroom(widget.initialClassroomName!),
         ),
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          Column(
         children: [
           // Filter bar
           Container(
@@ -331,6 +333,8 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                 });
               },
             ),
+          ),
+        ],
           ),
         ],
       ),

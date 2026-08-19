@@ -77,97 +77,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       return;
     }
 
-    final textController = TextEditingController();
-    final selected = <int>{};
-    var isSending = false;
-    bool? posted;
-    try {
-      posted = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) {
-        return StatefulBuilder(builder: (dialogContext, setDialogState) {
-          final dl10n = AppLocalizations.of(dialogContext);
-          return AlertDialog(
-            title: Text(dl10n.newAnnouncement),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: textController,
-                      decoration: InputDecoration(labelText: dl10n.announcementText),
-                      maxLines: null,
-                      minLines: 3,
-                      maxLength: 500,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(dl10n.targetClassrooms),
-                    for (final classroom in classrooms)
-                      CheckboxListTile(
-                        dense: true,
-                        title: Text(classroom.name),
-                        value: selected.contains(classroom.id),
-                        onChanged: isSending
-                            ? null
-                            : (checked) => setDialogState(() {
-                                  if (checked == true) {
-                                    selected.add(classroom.id);
-                                  } else {
-                                    selected.remove(classroom.id);
-                                  }
-                                }),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: isSending ? null : () => Navigator.pop(dialogContext, false),
-                child: Text(dl10n.cancel),
-              ),
-              FilledButton(
-                onPressed: isSending
-                    ? null
-                    : () async {
-                        if (textController.text.trim().isEmpty || selected.isEmpty) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            SnackBar(content: Text(dl10n.enterTextAndPickClassroom)),
-                          );
-                          return;
-                        }
-                        setDialogState(() => isSending = true);
-                        try {
-                          await TeacherService.createAnnouncement(
-                              textController.text.trim(), selected.toList());
-                          if (dialogContext.mounted) Navigator.pop(dialogContext, true);
-                        } on ApiException catch (e) {
-                          if (dialogContext.mounted) {
-                            setDialogState(() => isSending = false);
-                            ScaffoldMessenger.of(dialogContext)
-                                .showSnackBar(SnackBar(content: Text(e.message)));
-                          }
-                        }
-                      },
-                child: isSending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(dl10n.post),
-              ),
-            ],
-          );
-        });
-      },
-      );
-    } finally {
-      textController.dispose();
-    }
+    final posted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => _AddAnnouncementDialog(classrooms: classrooms),
+    );
 
     if (posted == true) _goToPage(1);
   }
@@ -276,7 +189,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                       title: Text('${s.name} ${s.surname}'),
                       subtitle: s.readAt != null
                           ? Text(
-                              DateFormat('d MMM y · HH:mm').format(s.readAt!.toLocal()),
+                              DateFormat('d MMM y · HH:mm', dl10n.localeName).format(s.readAt!.toLocal()),
                               style: const TextStyle(fontSize: 11),
                             )
                           : null,
@@ -317,7 +230,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.teacher),
       ),
@@ -344,7 +256,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          RefreshIndicator(
         onRefresh: _refresh,
         child: FutureBuilder<(TeacherDashboard, Paginated<Announcement>)>(
           future: _future,
@@ -439,6 +354,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
             );
           },
         ),
+      ),
+        ],
       ),
     );
   }
@@ -561,6 +478,112 @@ class _StatCard extends StatelessWidget {
 // Announcement card
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Add-announcement dialog — owns the TextEditingController so dispose() is
+// called by the framework after the closing animation finishes, not before.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AddAnnouncementDialog extends StatefulWidget {
+  final List<ClassroomOut> classrooms;
+
+  const _AddAnnouncementDialog({required this.classrooms});
+
+  @override
+  State<_AddAnnouncementDialog> createState() => _AddAnnouncementDialogState();
+}
+
+class _AddAnnouncementDialogState extends State<_AddAnnouncementDialog> {
+  final _textController = TextEditingController();
+  final _selected = <int>{};
+  var _isSending = false;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.newAnnouncement),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _textController,
+                decoration: InputDecoration(labelText: l10n.announcementText),
+                maxLines: null,
+                minLines: 3,
+                maxLength: 500,
+              ),
+              const SizedBox(height: 12),
+              Text(l10n.targetClassrooms),
+              for (final classroom in widget.classrooms)
+                CheckboxListTile(
+                  dense: true,
+                  title: Text(classroom.name),
+                  value: _selected.contains(classroom.id),
+                  onChanged: _isSending
+                      ? null
+                      : (checked) => setState(() {
+                            if (checked == true) {
+                              _selected.add(classroom.id);
+                            } else {
+                              _selected.remove(classroom.id);
+                            }
+                          }),
+                ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSending ? null : () => Navigator.pop(context, false),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _isSending
+              ? null
+              : () async {
+                  if (_textController.text.trim().isEmpty || _selected.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.enterTextAndPickClassroom)),
+                    );
+                    return;
+                  }
+                  setState(() => _isSending = true);
+                  try {
+                    await TeacherService.createAnnouncement(
+                        _textController.text.trim(), _selected.toList());
+                    if (mounted) Navigator.pop(context, true);
+                  } on ApiException catch (e) {
+                    if (mounted) {
+                      setState(() => _isSending = false);
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(e.message)));
+                    }
+                  }
+                },
+          child: _isSending
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.post),
+        ),
+      ],
+    );
+  }
+}
+
 enum _AnnouncementMenuAction { viewReaders, delete }
 
 class _AnnouncementCard extends StatelessWidget {
@@ -581,7 +604,7 @@ class _AnnouncementCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final dateStr = DateFormat('d MMM y · HH:mm').format(announcement.createdAt.toLocal());
+    final dateStr = DateFormat('d MMM · HH:mm', Localizations.localeOf(context).toString()).format(announcement.createdAt.toLocal());
 
     return Card(
       shape: AppCard.shape(cs),
@@ -590,98 +613,89 @@ class _AnnouncementCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Content preview + overflow menu
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      announcement.text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tt.bodyMedium?.copyWith(height: 1.45),
-                    ),
+              // Teal icon box
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryCyan.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  PopupMenuButton<_AnnouncementMenuAction>(
-                    onSelected: (action) {
-                      switch (action) {
-                        case _AnnouncementMenuAction.viewReaders:
-                          onViewReaders();
-                        case _AnnouncementMenuAction.delete:
-                          onDelete();
-                      }
-                    },
-                    icon: Icon(Icons.more_vert, size: 20, color: cs.onSurfaceVariant),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: _AnnouncementMenuAction.viewReaders,
-                        child: Row(children: [
-                          Icon(Icons.people_outline, size: 20, color: cs.onSurface),
-                          const SizedBox(width: 12),
-                          Text(l10n.viewReaders),
-                        ]),
-                      ),
-                      PopupMenuItem(
-                        value: _AnnouncementMenuAction.delete,
-                        child: Row(children: [
-                          Icon(Icons.delete_outline, size: 20, color: cs.error),
-                          const SizedBox(width: 12),
-                          Text(l10n.deleteAnnouncementTooltip,
-                              style: TextStyle(color: cs.error)),
-                        ]),
-                      ),
-                    ],
-                  ),
-                ],
+                  child: const Icon(Icons.campaign_rounded, size: 18,
+                      color: AppColors.primaryCyan),
+                ),
               ),
-              const SizedBox(height: 10),
-
-              // Classroom chips + date
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
+              const SizedBox(width: 12),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      announcement.text,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: tt.bodyMedium?.copyWith(height: 1.4),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        for (final c in announcement.classrooms) MetaBadge.classroom(c),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            children: [
+                              for (final c in announcement.classrooms)
+                                MetaBadge.classroom(c),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(dateStr,
+                            style: tt.labelSmall
+                                ?.copyWith(color: cs.onSurfaceVariant)),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(dateStr,
-                      style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
-                  const SizedBox(width: 8),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // View readers link
-              InkWell(
-                onTap: onViewReaders,
-                borderRadius: BorderRadius.circular(6),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.people_outline, size: 15, color: cs.primary),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.viewReaders,
-                        style: tt.labelSmall?.copyWith(
-                          color: cs.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
+              ),
+              // Single popup menu — view readers + delete
+              PopupMenuButton<_AnnouncementMenuAction>(
+                onSelected: (action) {
+                  switch (action) {
+                    case _AnnouncementMenuAction.viewReaders:
+                      onViewReaders();
+                    case _AnnouncementMenuAction.delete:
+                      onDelete();
+                  }
+                },
+                icon: Icon(Icons.more_vert, size: 18, color: cs.onSurfaceVariant),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: _AnnouncementMenuAction.viewReaders,
+                    child: Row(children: [
+                      Icon(Icons.people_outline, size: 20, color: cs.onSurface),
+                      const SizedBox(width: 12),
+                      Text(l10n.viewReaders),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: _AnnouncementMenuAction.delete,
+                    child: Row(children: [
+                      Icon(Icons.delete_outline, size: 20, color: cs.error),
+                      const SizedBox(width: 12),
+                      Text(l10n.deleteAnnouncementTooltip,
+                          style: TextStyle(color: cs.error)),
+                    ]),
+                  ),
+                ],
               ),
             ],
           ),

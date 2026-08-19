@@ -93,11 +93,13 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     final sortOptions = _buildGradeSortOptions(l10n);
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.myGrades),
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          Column(
         children: [
           GradeFilterBar(
             teachers: _teachers,
@@ -154,6 +156,8 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                 );
               },
             ),
+          ),
+        ],
           ),
         ],
       ),

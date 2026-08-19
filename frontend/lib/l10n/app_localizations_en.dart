@@ -18,6 +18,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logOut => 'Log out';
 
   @override
+  String get welcomeBack => 'Welcome back';
+
+  @override
+  String get viewProfile => 'View profile';
+
+  @override
   String get register => 'Register';
 
   @override

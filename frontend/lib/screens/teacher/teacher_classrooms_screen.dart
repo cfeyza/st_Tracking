@@ -79,7 +79,6 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.myClassrooms),
       ),
@@ -90,51 +89,56 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
         },
         child: const Icon(Icons.add),
       ),
-      body: FutureBuilder<Paginated<ClassroomOut>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-                child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
-          }
-          final result = snapshot.data!;
-          final classrooms = result.items;
-          return Column(
-            children: [
-              Expanded(
-                child: classrooms.isEmpty
-                    ? EmptyState(icon: Icons.class_outlined, message: l10n.noClassroomsYet)
-                    : ListView.builder(
-                        padding: AppInsets.listWithFab(context),
-                        itemCount: classrooms.length,
-                        itemBuilder: (context, index) {
-                          final c = classrooms[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: _ClassroomCard(
-                              classroom: c,
-                              onDelete: () => _confirmDelete(c),
-                              onTap: () => Navigator.of(context).pushNamed(
-                                '/teacher/students',
-                                arguments: {'classroomId': c.id, 'classroomName': c.name},
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              if (result.totalPages > 1)
-                PaginationBar(
-                  page: result.page,
-                  totalPages: result.totalPages,
-                  onPageChange: _goToPage,
-                ),
-            ],
-          );
-        },
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          FutureBuilder<Paginated<ClassroomOut>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                    child: Text('${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+              }
+              final result = snapshot.data!;
+              final classrooms = result.items;
+              return Column(
+                children: [
+                  Expanded(
+                    child: classrooms.isEmpty
+                        ? EmptyState(icon: Icons.class_outlined, message: l10n.noClassroomsYet)
+                        : ListView.builder(
+                            padding: AppInsets.listWithFab(context),
+                            itemCount: classrooms.length,
+                            itemBuilder: (context, index) {
+                              final c = classrooms[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _ClassroomCard(
+                                  classroom: c,
+                                  onDelete: () => _confirmDelete(c),
+                                  onTap: () => Navigator.of(context).pushNamed(
+                                    '/teacher/students',
+                                    arguments: {'classroomId': c.id, 'classroomName': c.name},
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  if (result.totalPages > 1)
+                    PaginationBar(
+                      page: result.page,
+                      totalPages: result.totalPages,
+                      onPageChange: _goToPage,
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

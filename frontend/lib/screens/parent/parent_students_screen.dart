@@ -29,7 +29,6 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.myStudents),
       ),
@@ -37,7 +36,10 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
         onPressed: () => Navigator.of(context).pushNamed('/parent/add-student-code'),
         child: const Icon(Icons.add),
       ),
-      body: FutureBuilder<List<ParentStudentListItem>>(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          FutureBuilder<List<ParentStudentListItem>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
@@ -74,6 +76,8 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
             },
           );
         },
+          ),
+        ],
       ),
     );
   }

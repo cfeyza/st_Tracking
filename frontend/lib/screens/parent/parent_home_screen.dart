@@ -99,7 +99,6 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
     final showFilter = _students != null && _students!.length > 1;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.parent),
       ),
@@ -122,7 +121,10 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          RefreshIndicator(
         onRefresh: _refresh,
         child: Column(
           children: [
@@ -218,6 +220,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
           ],
         ),
       ),
+        ],
+      ),
     );
   }
 }
@@ -232,7 +236,7 @@ class _ParentAnnouncementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final dateStr = DateFormat('d MMM y · HH:mm').format(announcement.createdAt.toLocal());
+    final dateStr = DateFormat('d MMM · HH:mm', Localizations.localeOf(context).toString()).format(announcement.createdAt.toLocal());
 
     return Card(
       shape: AppCard.shape(cs),
@@ -241,41 +245,62 @@ class _ParentAnnouncementCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                announcement.text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tt.bodyMedium?.copyWith(height: 1.45),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryCyan.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.campaign_rounded, size: 18,
+                      color: AppColors.primaryCyan),
+                ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      announcement.text,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: tt.bodyMedium?.copyWith(height: 1.4),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (announcement.studentName != null &&
-                            announcement.studentName!.isNotEmpty)
-                          MetaBadge.student(announcement.studentName!),
-                        if (announcement.teacherName != null &&
-                            announcement.teacherName!.isNotEmpty)
-                          MetaBadge.teacher(announcement.teacherName!),
-                        for (final c in announcement.classrooms) MetaBadge.classroom(c),
+                        Expanded(
+                          child: Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            children: [
+                              if (announcement.studentName != null &&
+                                  announcement.studentName!.isNotEmpty)
+                                MetaBadge.student(announcement.studentName!),
+                              if (announcement.teacherName != null &&
+                                  announcement.teacherName!.isNotEmpty)
+                                MetaBadge.teacher(announcement.teacherName!),
+                              for (final c in announcement.classrooms)
+                                MetaBadge.classroom(c),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(dateStr,
+                            style: tt.labelSmall
+                                ?.copyWith(color: cs.onSurfaceVariant)),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    dateStr,
-                    style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),

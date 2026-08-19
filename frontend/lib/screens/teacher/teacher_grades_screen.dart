@@ -122,11 +122,13 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
     final studentName = _selectedStudentLabel;
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(studentName == null ? l10n.grades : l10n.gradesWithStudent(studentName)),
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          Column(
         children: [
           GradeFilterBar(
             filters: [
@@ -247,7 +249,7 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
                                       DataCell(Text(g.subject)),
                                       DataCell(Text(g.value)),
                                       DataCell(Text(g.classroomName ?? '-')),
-                                      DataCell(Text(DateFormat('d MMM y')
+                                      DataCell(Text(DateFormat('d MMM y', l10n.localeName)
                                           .format(g.createdAt.toLocal()))),
                                     ]),
                                 ],
@@ -267,6 +269,8 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
                 });
               },
             ),
+          ),
+        ],
           ),
         ],
       ),

@@ -194,6 +194,86 @@ class _FloatingShapesPainter extends CustomPainter {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Content-screen background pattern painter
+// Subtle teal shapes scattered across the page — mirrors the auth background
+// but at ~10–18% opacity so it reads as texture, not decoration.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ContentShapesPainter extends CustomPainter {
+  const ContentShapesPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    final fill = Paint()..style = PaintingStyle.fill;
+
+    // Large hollow circle — top right
+    stroke.color = const Color(0x2200BCD4);
+    canvas.drawCircle(Offset(size.width * 0.96, size.height * 0.06), 90, stroke);
+
+    // Medium filled circle — right mid
+    fill.color = const Color(0x0F00BCD4);
+    canvas.drawCircle(Offset(size.width * 1.05, size.height * 0.38), 80, fill);
+
+    // Small hollow circle — top left
+    stroke.color = const Color(0x1A00ACC1);
+    canvas.drawCircle(Offset(size.width * 0.06, size.height * 0.12), 44, stroke);
+
+    // Large hollow circle — bottom left (partial)
+    stroke.color = const Color(0x1500BCD4);
+    canvas.drawCircle(Offset(-24, size.height * 0.74), 72, stroke);
+
+    // Medium hollow circle — bottom right
+    stroke.color = const Color(0x1200ACC1);
+    canvas.drawCircle(Offset(size.width * 0.92, size.height * 0.88), 55, stroke);
+
+    // Triangle — upper left area
+    stroke.color = const Color(0x1E00ACC1);
+    _triangle(canvas, stroke, Offset(size.width * 0.1, size.height * 0.30), 22);
+
+    // Triangle — lower right
+    stroke.color = const Color(0x1500ACC1);
+    _triangle(canvas, stroke, Offset(size.width * 0.82, size.height * 0.72), 18);
+
+    // Diamond — top centre-right
+    stroke.color = const Color(0x1E00BCD4);
+    _diamond(canvas, stroke, Offset(size.width * 0.72, size.height * 0.08), 14);
+
+    // Diamond — lower left
+    stroke.color = const Color(0x1200BCD4);
+    _diamond(canvas, stroke, Offset(size.width * 0.18, size.height * 0.82), 12);
+
+    // Tiny filled circle — centre right
+    fill.color = const Color(0x1000BCD4);
+    canvas.drawCircle(Offset(size.width * 0.88, size.height * 0.52), 28, fill);
+  }
+
+  void _triangle(Canvas canvas, Paint paint, Offset c, double r) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..lineTo(c.dx + r * 0.866, c.dy + r * 0.5)
+      ..lineTo(c.dx - r * 0.866, c.dy + r * 0.5)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  void _diamond(Canvas canvas, Paint paint, Offset c, double r) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..lineTo(c.dx + r, c.dy)
+      ..lineTo(c.dx, c.dy + r)
+      ..lineTo(c.dx - r, c.dy)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Gradient tappable card (replaces plain Card for stat-style cards)
 // ─────────────────────────────────────────────────────────────────────────────
 

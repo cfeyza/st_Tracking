@@ -101,11 +101,13 @@ class _ParentStudentGradesScreenState extends State<ParentStudentGradesScreen> {
     final sortOptions = _buildSortOptions(l10n);
 
     return Scaffold(
-      backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.gradesWithStudent(widget.studentName)),
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          Positioned.fill(child: CustomPaint(painter: const ContentShapesPainter())),
+          Column(
         children: [
           GradeFilterBar(
             teachers: _teachers,
@@ -164,6 +166,8 @@ class _ParentStudentGradesScreenState extends State<ParentStudentGradesScreen> {
                 );
               },
             ),
+          ),
+        ],
           ),
         ],
       ),

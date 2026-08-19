@@ -46,3 +46,4 @@ def send_verification_email(to_email: str, name: str, token: str) -> None:
         logger.info("Verification email sent to %s", to_email)
     except Exception:
         logger.exception("Failed to send verification email to %s", to_email)
+        raise

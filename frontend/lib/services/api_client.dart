@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -61,22 +62,40 @@ class ApiClient {
   }
 
   static Future<dynamic> get(String path, {bool auth = true}) async {
-    final response = await _client.get(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
-    return _decode(response, auth: auth);
+    try {
+      final response = await _client.get(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
+      return _decode(response, auth: auth);
+    } on http.ClientException catch (e) {
+      throw ApiException(0, e.message);
+    } on TimeoutException {
+      throw ApiException(0, 'Connection timed out. Check your network.');
+    }
   }
 
   static Future<dynamic> post(String path, {Map<String, dynamic>? body, bool auth = true}) async {
-    final response = await _client.post(
-      Uri.parse('$apiBaseUrl$path'),
-      headers: _headers(auth: auth),
-      body: body == null ? null : jsonEncode(body),
-    ).timeout(_kTimeout);
-    return _decode(response, auth: auth);
+    try {
+      final response = await _client.post(
+        Uri.parse('$apiBaseUrl$path'),
+        headers: _headers(auth: auth),
+        body: body == null ? null : jsonEncode(body),
+      ).timeout(_kTimeout);
+      return _decode(response, auth: auth);
+    } on http.ClientException catch (e) {
+      throw ApiException(0, e.message);
+    } on TimeoutException {
+      throw ApiException(0, 'Connection timed out. Check your network.');
+    }
   }
 
   static Future<dynamic> delete(String path, {bool auth = true}) async {
-    final response = await _client.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
-    return _decode(response, auth: auth);
+    try {
+      final response = await _client.delete(Uri.parse('$apiBaseUrl$path'), headers: _headers(auth: auth)).timeout(_kTimeout);
+      return _decode(response, auth: auth);
+    } on http.ClientException catch (e) {
+      throw ApiException(0, e.message);
+    } on TimeoutException {
+      throw ApiException(0, 'Connection timed out. Check your network.');
+    }
   }
 
   static Future<dynamic> postMultipart(
@@ -87,9 +106,11 @@ class ApiClient {
     bool auth = true,
   }) async {
     final request = http.MultipartRequest('POST', Uri.parse('$apiBaseUrl$path'));
-    request.headers.addAll(_headers(auth: auth)..remove('Content-Type'));
+    if (auth && Session.token != null) {
+      request.headers['Authorization'] = 'Bearer ${Session.token}';
+    }
     request.files.add(http.MultipartFile.fromBytes(fieldName, bytes, filename: filename));
-    final streamed = await _client.send(request).timeout(const Duration(seconds: 60));
+    final streamed = await _client.send(request).timeout(const Duration(minutes: 5));
     final response = await http.Response.fromStream(streamed);
     return _decode(response, auth: auth);
   }

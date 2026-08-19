@@ -46,8 +46,9 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
           }
           if (snapshot.hasError) {
             return Center(
-                child: Text(
-                    '${(snapshot.error as ApiException?)?.message ?? snapshot.error}'));
+                child: Text(snapshot.error is ApiException
+                    ? (snapshot.error as ApiException).message
+                    : snapshot.error.toString()));
           }
           final teacher = snapshot.data!;
           return SingleChildScrollView(

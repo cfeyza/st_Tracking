@@ -186,7 +186,13 @@ async def find_and_link_teacher_code(
 
     await db.execute(teacher_students.insert().values(teacher_id=teacher.id, student_id=student.id))
 
-    await db.delete(placeholder)
+    # Expunge the placeholder from the session's identity map before deleting it
+    # via raw SQL. This prevents SQLAlchemy's ORM cascade (cascade="all,
+    # delete-orphan" on StudentProfile.grades) from re-deleting grades that the
+    # UPDATE above has already reassigned to the real student.
+    placeholder_id = placeholder.id
+    db.expunge(placeholder)
+    await db.execute(StudentProfile.__table__.delete().where(StudentProfile.id == placeholder_id))
     await db.flush()
 
     classrooms_result = await db.execute(

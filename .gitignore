@@ -10,7 +10,10 @@ PROJECT_CONTEXT.md
 .env.production
 .env.staging
 **/.env
-**/.env.*
+**/.env.local
+**/.env.production
+**/.env.staging
+**/.env.test
 *serviceaccount*.json
 *service-account*.json
 firebase_options.dart

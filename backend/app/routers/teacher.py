@@ -22,12 +22,15 @@ from app.schemas.classroom import (
     ClassroomOut,
     PdfImportClassroomResult,
     PdfImportResult,
+    PdfPreviewEntry,
+    PdfPreviewPage,
+    PdfPreviewResult,
     RosterImportRequest,
 )
 from app.schemas.grade import GradeCreate, GradeOut
 from app.schemas.pagination import Page
 from app.schemas.teacher import StudentListItem, TeacherDashboardOut, TeacherProfileOut
-from app.services.pdf_roster import parse_pdf
+from app.services.pdf_roster import OcrUnavailableError, parse_pdf
 from app.services.push import send_announcement_push
 from app.services.roster import RosterEntryInput, import_roster
 
@@ -252,6 +255,8 @@ async def import_classrooms_pdf(
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="PDF must be 20 MB or smaller.")
     try:
         pages = await run_in_threadpool(parse_pdf, file_bytes)
+    except OcrUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this file as a PDF.") from exc
 
@@ -305,6 +310,7 @@ async def import_classrooms_pdf(
             existing_result = classroom_results[classroom.id]
             existing_result.students_added += len(students)
             existing_result.skipped.extend(skipped)
+            existing_result.warnings.extend(page.warnings)
         else:
             classroom_results[classroom.id] = PdfImportClassroomResult(
                 classroom_id=classroom.id,
@@ -312,13 +318,66 @@ async def import_classrooms_pdf(
                 created_classroom=created_classroom,
                 students_added=len(students),
                 skipped=skipped,
+                warnings=list(page.warnings),
             )
-
-        for warning in page.warnings:
-            errors.append(f"Page {page.page_number}: {warning}")
 
     await db.commit()
     return PdfImportResult(classrooms=list(classroom_results.values()), errors=errors)
+
+
+@router.post("/classrooms/import/pdf/preview", response_model=PdfPreviewResult, status_code=status.HTTP_200_OK)
+async def preview_classrooms_pdf(
+    file: UploadFile,
+    teacher: TeacherProfile = Depends(get_current_teacher),
+    db: AsyncSession = Depends(get_db),
+) -> PdfPreviewResult:
+    """Parses an e-Okul PDF and returns what would be imported without writing
+    anything to the database. Use this to verify OCR accuracy before committing.
+    Each page shows its detected classroom name, the student rows that were
+    read, which school_ids already exist in the teacher's roster, any rows
+    that were skipped due to unreadable OCR output, and any page-level error.
+    """
+    filename = file.filename or ""
+    if not filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF file.")
+
+    _MAX_PDF_BYTES = 20 * 1024 * 1024
+    file_bytes = await file.read(_MAX_PDF_BYTES + 1)
+    if len(file_bytes) > _MAX_PDF_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="PDF must be 20 MB or smaller.")
+
+    try:
+        pages = await run_in_threadpool(parse_pdf, file_bytes)
+    except OcrUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this file as a PDF.") from exc
+
+    all_school_ids = [e.school_id for p in pages if not p.error for e in p.entries]
+    existing_ids = await _find_duplicate_school_ids(db, teacher.id, all_school_ids)
+
+    preview_pages: list[PdfPreviewPage] = []
+    for page in pages:
+        entries = [
+            PdfPreviewEntry(
+                name=e.name,
+                surname=e.surname,
+                school_id=e.school_id,
+                already_in_roster=e.school_id in existing_ids,
+            )
+            for e in page.entries
+        ]
+        preview_pages.append(
+            PdfPreviewPage(
+                page_number=page.page_number,
+                classroom_name=page.classroom_name,
+                entries=entries,
+                warnings=page.warnings,
+                error=page.error,
+            )
+        )
+
+    return PdfPreviewResult(pages=preview_pages)
 
 
 SortField = Literal["classroom", "name", "surname", "school_id"]
@@ -361,7 +420,18 @@ async def list_students(
             )
         )
 
-    total = await db.scalar(select(func.count()).select_from(query.subquery()))
+    count_query = (
+        select(func.count(StudentProfile.id))
+        .join(teacher_students, teacher_students.c.student_id == StudentProfile.id)
+        .where(teacher_students.c.teacher_id == teacher.id)
+    )
+    if classroom_id is not None:
+        count_query = count_query.where(
+            StudentProfile.id.in_(
+                select(classroom_students.c.student_id).where(classroom_students.c.classroom_id == classroom_id)
+            )
+        )
+    total = await db.scalar(count_query)
 
     sort_columns = {
         "classroom": (classrooms_agg.c.classroom_names, StudentProfile.school_id),
@@ -679,7 +749,12 @@ async def list_grades(
         await _get_owned_classroom(db, teacher.id, classroom_id)
         query = query.where(Grade.classroom_id == classroom_id)
 
-    total = await db.scalar(select(func.count()).select_from(query.subquery()))
+    count_query = select(func.count(Grade.id)).where(Grade.teacher_id == teacher.id)
+    if student_id is not None:
+        count_query = count_query.where(Grade.student_id == student_id)
+    if classroom_id is not None:
+        count_query = count_query.where(Grade.classroom_id == classroom_id)
+    total = await db.scalar(count_query)
 
     sort_columns = {
         "student": (StudentProfile.surname, StudentProfile.name),

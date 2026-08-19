@@ -1,4 +1,3 @@
-.env.example
 .venv/
 __pycache__/
 *.pyc
@@ -21,9 +20,15 @@ logs/
 *.sqlite3
 *.db
 
-# Flask instance folder (may contain secrets)
 instance/
 
 # User uploads / media
 uploads/
 media/
+
+# Test / coverage artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml

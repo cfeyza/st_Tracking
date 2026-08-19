@@ -105,10 +105,15 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
     expires_at = datetime.now(timezone.utc) + timedelta(hours=settings.EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS)
     db.add(EmailVerificationToken(user_id=user.id, token=token, expires_at=expires_at))
 
+    try:
+        send_verification_email(to_email=payload.email, name=payload.name, token=token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="We could not send a verification email right now. Please try again later.",
+        )
+
     await db.commit()
-
-    send_verification_email(to_email=payload.email, name=payload.name, token=token)
-
     return RegisterResponse()
 
 

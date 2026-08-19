@@ -10,6 +10,7 @@ whitespace, since OCR output does not reliably preserve the original
 document's column alignment as runs of spaces.
 """
 
+import functools
 import re
 from dataclasses import dataclass, field
 
@@ -59,6 +60,26 @@ class OcrUnavailableError(Exception):
     pass
 
 
+@functools.lru_cache(maxsize=1)
+def _check_tesseract() -> None:
+    """Probes for Tesseract and the Turkish language pack; raises OcrUnavailableError if either is absent.
+
+    Result is cached so the subprocess is only spawned once per worker process.
+    """
+    try:
+        pytesseract.get_tesseract_version()
+    except pytesseract.TesseractNotFoundError as exc:
+        raise OcrUnavailableError(
+            "Tesseract OCR is not installed on this server; "
+            "image-only PDFs cannot be processed."
+        ) from exc
+    if "tur" not in pytesseract.get_languages():
+        raise OcrUnavailableError(
+            "The Tesseract Turkish language pack (tesseract-ocr-tur) is not installed; "
+            "image-only PDFs cannot be processed."
+        )
+
+
 def _words_from_text_layer(page: "fitz.Page") -> list[_Word]:
     words = []
     for x0, y0, x1, y1, text, block_no, line_no, _word_no in page.get_text("words"):
@@ -69,12 +90,10 @@ def _words_from_text_layer(page: "fitz.Page") -> list[_Word]:
 
 
 def _words_from_ocr(page: "fitz.Page") -> tuple[list[_Word], float]:
+    _check_tesseract()
     pix = page.get_pixmap(dpi=_OCR_DPI)
     image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-    try:
-        data = pytesseract.image_to_data(image, lang="tur", output_type=pytesseract.Output.DICT)
-    except pytesseract.TesseractNotFoundError as exc:
-        raise OcrUnavailableError("Tesseract is not installed on this server.") from exc
+    data = pytesseract.image_to_data(image, lang="tur", output_type=pytesseract.Output.DICT)
 
     words = []
     for i, text in enumerate(data["text"]):
@@ -216,6 +235,9 @@ def _parse_page(page: "fitz.Page", page_number: int) -> PageParseResult:
 
 
 def parse_pdf(file_bytes: bytes) -> list[PageParseResult]:
+    # Fail fast at the request level so a missing binary/language pack surfaces
+    # as a single HTTP 503, not N identical per-page error strings.
+    _check_tesseract()
     results = []
     with fitz.open(stream=file_bytes, filetype="pdf") as doc:
         for i, page in enumerate(doc):

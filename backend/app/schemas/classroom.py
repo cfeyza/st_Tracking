@@ -61,8 +61,28 @@ class PdfImportClassroomResult(BaseModel):
     created_classroom: bool
     students_added: int
     skipped: list[str] = []
+    warnings: list[str] = []
 
 
 class PdfImportResult(BaseModel):
     classrooms: list[PdfImportClassroomResult]
     errors: list[str] = []
+
+
+class PdfPreviewEntry(BaseModel):
+    name: str
+    surname: str
+    school_id: int
+    already_in_roster: bool
+
+
+class PdfPreviewPage(BaseModel):
+    page_number: int
+    classroom_name: str | None
+    entries: list[PdfPreviewEntry]
+    warnings: list[str]
+    error: str | None
+
+
+class PdfPreviewResult(BaseModel):
+    pages: list[PdfPreviewPage]

@@ -146,10 +146,46 @@ class StudentTrackingApp extends StatelessWidget {
           navigatorKey: navigatorKey,
           locale: locale,
           theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF00BCD4),
+              brightness: Brightness.light,
+            ),
             useMaterial3: true,
-            appBarTheme: const AppBarTheme(scrolledUnderElevation: 0),
+            appBarTheme: const AppBarTheme(
+              scrolledUnderElevation: 0,
+              elevation: 0,
+              backgroundColor: Color(0xFF006064),
+              foregroundColor: Colors.white,
+              iconTheme: IconThemeData(color: Colors.white),
+            ),
             cardTheme: const CardThemeData(elevation: 0),
+            filledButtonTheme: FilledButtonThemeData(
+              style: FilledButton.styleFrom(
+                backgroundColor: Color(0xFF00BCD4),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(16)),
+                ),
+                textStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Color(0xFFF0FDFE),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(color: Color(0xFFB2EBF2), width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(color: Color(0xFF00BCD4), width: 2),
+              ),
+            ),
           ),
           localizationsDelegates: const [
             AppLocalizations.delegate,

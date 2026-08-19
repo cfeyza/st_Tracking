@@ -82,7 +82,6 @@ class _TeacherClassroomsScreenState extends State<TeacherClassroomsScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.myClassrooms),
-        backgroundColor: cs.surface,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {

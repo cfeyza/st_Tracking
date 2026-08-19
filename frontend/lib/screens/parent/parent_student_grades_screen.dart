@@ -104,9 +104,6 @@ class _ParentStudentGradesScreenState extends State<ParentStudentGradesScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.gradesWithStudent(widget.studentName)),
-        backgroundColor: cs.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
       ),
       body: Column(
         children: [

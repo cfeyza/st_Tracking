@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -9,6 +9,7 @@ from app.constants import DEFAULT_PAGE_SIZE
 from app.core.limiter import limiter
 from app.db.session import get_db
 from app.deps import get_current_student
+from app.l10n import L10nHTTPException
 from app.models.announcement import Announcement, AnnouncementRead, announcement_classrooms
 from app.models.classroom import Classroom, classroom_students
 from app.models.device_token import DeviceToken
@@ -90,7 +91,7 @@ async def delete_device_token(
     )
     device_token = result.scalar_one_or_none()
     if device_token is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device token not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Device token not found", tr="Cihaz jetonu bulunamadı")
     await db.delete(device_token)
     await db.commit()
 
@@ -111,7 +112,7 @@ async def add_teacher_code(
     result = await db.execute(select(TeacherProfile).where(TeacherProfile.teacher_code == payload.code.strip()))
     teacher = result.scalar_one_or_none()
     if teacher is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid teacher code")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Invalid teacher code", tr="Geçersiz öğretmen kodu")
 
     classrooms = await find_and_link_teacher_code(db, teacher, student)
     await db.commit()
@@ -221,7 +222,7 @@ async def acknowledge_announcement(
         )
     )
     if not visible:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Announcement not found", tr="Duyuru bulunamadı")
 
     existing = await db.scalar(
         select(AnnouncementRead).where(
@@ -230,7 +231,7 @@ async def acknowledge_announcement(
         )
     )
     if existing is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already acknowledged")
+        raise L10nHTTPException(status_code=status.HTTP_409_CONFLICT, en="Already acknowledged", tr="Zaten okundu olarak işaretlendi")
 
     read = AnnouncementRead(announcement_id=announcement_id, student_id=student.id)
     db.add(read)

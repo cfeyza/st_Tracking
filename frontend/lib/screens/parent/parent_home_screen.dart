@@ -102,7 +102,6 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.parent),
-        backgroundColor: cs.surface,
       ),
       drawer: AppDrawer(
         onProfileTap: () => Navigator.of(context).pushNamed('/parent/profile'),

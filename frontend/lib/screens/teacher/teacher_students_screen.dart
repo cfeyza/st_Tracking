@@ -143,7 +143,6 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
               ? l10n.myStudents
               : l10n.myStudentsWithClassroom(widget.initialClassroomName!),
         ),
-        backgroundColor: cs.surface,
       ),
       body: Column(
         children: [

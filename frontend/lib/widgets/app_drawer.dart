@@ -3,6 +3,7 @@ import 'package:student_tracking_app/l10n/app_localizations.dart';
 
 import '../locale_notifier.dart';
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 
 class DrawerAction {
   final IconData icon;
@@ -37,21 +38,31 @@ class AppDrawer extends StatelessWidget {
               onProfileTap();
             },
             child: Container(
-              color: colorScheme.primaryContainer,
+              decoration: const BoxDecoration(
+                gradient: AppColors.drawerGradient,
+              ),
               padding: EdgeInsets.fromLTRB(
                 20,
-                MediaQuery.of(context).padding.top + 20,
+                MediaQuery.of(context).padding.top + 24,
                 20,
-                20,
+                24,
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: colorScheme.onPrimaryContainer.withAlpha(26),
-                    child: Icon(Icons.person, size: 28, color: colorScheme.onPrimaryContainer),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.22),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.45),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(Icons.person_rounded, size: 28, color: Colors.white),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,15 +70,27 @@ class AppDrawer extends StatelessWidget {
                         Text(
                           l10n.profile,
                           style: textTheme.titleSmall?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 12,
-                          color: colorScheme.onPrimaryContainer.withAlpha(178),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            Text(
+                              'View profile',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: Colors.white.withOpacity(0.75),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 10,
+                              color: Colors.white.withOpacity(0.75),
+                            ),
+                          ],
                         ),
                       ],
                     ),

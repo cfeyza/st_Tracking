@@ -129,7 +129,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.student),
-        backgroundColor: cs.surface,
       ),
       drawer: AppDrawer(
         onProfileTap: () => Navigator.of(context).pushNamed('/student/profile'),

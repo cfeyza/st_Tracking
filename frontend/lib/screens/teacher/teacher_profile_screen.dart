@@ -37,7 +37,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
-      appBar: AppBar(title: Text(l10n.profile), backgroundColor: cs.surface),
+      appBar: AppBar(title: Text(l10n.profile)),
       body: FutureBuilder<TeacherProfile>(
         future: _future,
         builder: (context, snapshot) {

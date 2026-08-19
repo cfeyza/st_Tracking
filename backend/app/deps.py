@@ -1,10 +1,11 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_access_token
 from app.db.session import get_db
+from app.l10n import L10nHTTPException
 from app.models.parent import ParentProfile
 from app.models.student import StudentProfile
 from app.models.teacher import TeacherProfile
@@ -17,9 +18,10 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    credentials_exception = HTTPException(
+    credentials_exception = L10nHTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        en="Could not validate credentials",
+        tr="Kimlik bilgileri doğrulanamadı",
         headers={"WWW-Authenticate": "Bearer"},
     )
     payload = decode_access_token(token)
@@ -42,13 +44,13 @@ async def get_current_teacher(
     db: AsyncSession = Depends(get_db),
 ) -> TeacherProfile:
     if user.role != Role.TEACHER:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Teacher role required")
+        raise L10nHTTPException(status_code=status.HTTP_403_FORBIDDEN, en="Teacher role required", tr="Bu işlem için öğretmen rolü gereklidir")
     result = await db.execute(
         select(TeacherProfile).where(TeacherProfile.user_id == user.id)
     )
     profile = result.scalar_one_or_none()
     if profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Teacher profile not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Teacher profile not found", tr="Öğretmen profili bulunamadı")
     return profile
 
 
@@ -57,13 +59,13 @@ async def get_current_student(
     db: AsyncSession = Depends(get_db),
 ) -> StudentProfile:
     if user.role != Role.STUDENT:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Student role required")
+        raise L10nHTTPException(status_code=status.HTTP_403_FORBIDDEN, en="Student role required", tr="Bu işlem için öğrenci rolü gereklidir")
     result = await db.execute(
         select(StudentProfile).where(StudentProfile.user_id == user.id)
     )
     profile = result.scalar_one_or_none()
     if profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student profile not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Student profile not found", tr="Öğrenci profili bulunamadı")
     return profile
 
 
@@ -72,11 +74,11 @@ async def get_current_parent(
     db: AsyncSession = Depends(get_db),
 ) -> ParentProfile:
     if user.role != Role.PARENT:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Parent role required")
+        raise L10nHTTPException(status_code=status.HTTP_403_FORBIDDEN, en="Parent role required", tr="Bu işlem için veli rolü gereklidir")
     result = await db.execute(
         select(ParentProfile).where(ParentProfile.user_id == user.id)
     )
     profile = result.scalar_one_or_none()
     if profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parent profile not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Parent profile not found", tr="Veli profili bulunamadı")
     return profile

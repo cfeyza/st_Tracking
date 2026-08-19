@@ -320,7 +320,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.teacher),
-        backgroundColor: cs.surface,
       ),
       drawer: AppDrawer(
         onProfileTap: () => Navigator.of(context).pushNamed('/teacher/profile'),
@@ -510,41 +509,48 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    return Card(
-      shape: AppCard.shape(cs),
-      color: cs.surface,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: cs.primary, size: 22),
+    return GradientCard(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.28),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('$count',
-                        style: tt.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    Text(label,
-                        style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-                  ],
-                ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$count',
+                    style: tt.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: tt.bodySmall?.copyWith(
+                      color: Colors.white.withOpacity(0.85),
+                    ),
+                  ),
+                ],
               ),
-              Icon(Icons.chevron_right, color: cs.onSurfaceVariant, size: 20),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white.withOpacity(0.75),
+              size: 22,
+            ),
+          ],
         ),
       ),
     );

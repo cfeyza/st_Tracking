@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -9,6 +9,7 @@ from app.constants import DEFAULT_PAGE_SIZE
 from app.core.limiter import limiter
 from app.db.session import get_db
 from app.deps import get_current_parent
+from app.l10n import L10nHTTPException
 from app.models.announcement import Announcement, announcement_classrooms
 from app.models.classroom import Classroom, classroom_students
 from app.models.grade import Grade
@@ -48,7 +49,7 @@ async def add_student_code(
     result = await db.execute(select(StudentProfile).where(StudentProfile.student_code == payload.code.strip()))
     student = result.scalar_one_or_none()
     if student is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid student code")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Invalid student code", tr="Geçersiz öğrenci kodu")
 
     existing = await db.execute(
         select(parent_students).where(
@@ -56,7 +57,7 @@ async def add_student_code(
         )
     )
     if existing.first() is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You are already linked to this student")
+        raise L10nHTTPException(status_code=status.HTTP_409_CONFLICT, en="You are already linked to this student", tr="Bu öğrenciyle zaten bağlantı kurulmuş")
 
     await db.execute(parent_students.insert().values(parent_id=parent.id, student_id=student.id))
     await db.commit()
@@ -95,7 +96,7 @@ async def list_announcements(
             )
         )
         if link.first() is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+            raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Student not found", tr="Öğrenci bulunamadı")
         student_condition = classroom_students.c.student_id == student_id
     else:
         parent_student_ids = select(parent_students.c.student_id).where(parent_students.c.parent_id == parent.id)
@@ -173,7 +174,7 @@ async def list_student_grade_teachers(
         )
     )
     if link.first() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Student not found", tr="Öğrenci bulunamadı")
 
     result = await db.execute(
         select(TeacherProfile)
@@ -204,7 +205,7 @@ async def list_student_grades(
         )
     )
     if link.first() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Student not found", tr="Öğrenci bulunamadı")
 
     filters = [Grade.student_id == student_id]
     if teacher_id is not None:

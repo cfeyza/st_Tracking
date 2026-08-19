@@ -125,9 +125,6 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(studentName == null ? l10n.grades : l10n.gradesWithStudent(studentName)),
-        backgroundColor: cs.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
       ),
       body: Column(
         children: [

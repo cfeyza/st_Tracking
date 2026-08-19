@@ -29,7 +29,7 @@ class _ParentProfileScreenState extends State<ParentProfileScreen> {
 
     return Scaffold(
       backgroundColor: cs.surfaceContainerLowest,
-      appBar: AppBar(title: Text(l10n.profile), backgroundColor: cs.surface),
+      appBar: AppBar(title: Text(l10n.profile)),
       body: FutureBuilder<ParentProfile>(
         future: _future,
         builder: (context, snapshot) {

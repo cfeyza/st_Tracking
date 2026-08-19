@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +14,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
+from app.l10n import L10nHTTPException
 from app.models.parent import ParentProfile
 from app.models.student import StudentProfile
 from app.models.teacher import TeacherProfile
@@ -32,7 +33,7 @@ async def _unique_code(db: AsyncSession, model, column_name: str, prefix: str) -
         result = await db.execute(select(model).where(column == code))
         if result.scalar_one_or_none() is None:
             return code
-    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate a unique code")
+    raise L10nHTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, en="Could not generate a unique code", tr="Benzersiz kod oluşturulamadı")
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
@@ -42,9 +43,10 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
     existing_user = existing.scalar_one_or_none()
     if existing_user is not None:
         if existing_user.is_verified:
-            raise HTTPException(
+            raise L10nHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="This email is already registered.",
+                en="This email is already registered.",
+                tr="Bu e-posta adresi zaten kayıtlı.",
             )
 
         token_result = await db.execute(
@@ -52,9 +54,10 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
         )
         existing_token = token_result.scalar_one_or_none()
         if existing_token is not None and existing_token.expires_at >= datetime.now(timezone.utc):
-            raise HTTPException(
+            raise L10nHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="This email is already registered.",
+                en="This email is already registered.",
+                tr="Bu e-posta adresi zaten kayıtlı.",
             )
 
         # Unverified user with an expired (or missing) token: the old
@@ -70,9 +73,10 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
             )
         )
         if existing_school_id.scalar_one_or_none() is not None:
-            raise HTTPException(
+            raise L10nHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="This school ID is already registered to another account.",
+                en="This school ID is already registered to another account.",
+                tr="Bu okul numarası başka bir hesaba kayıtlı.",
             )
 
     user = User(
@@ -108,9 +112,10 @@ async def register(request: Request, payload: RegisterRequest, db: AsyncSession 
     try:
         send_verification_email(to_email=payload.email, name=payload.name, token=token)
     except Exception:
-        raise HTTPException(
+        raise L10nHTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="We could not send a verification email right now. Please try again later.",
+            en="We could not send a verification email right now. Please try again later.",
+            tr="Şu anda doğrulama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.",
         )
 
     await db.commit()
@@ -123,12 +128,12 @@ async def verify_email(token: str, db: AsyncSession = Depends(get_db)) -> Verify
     verification = result.scalar_one_or_none()
 
     if verification is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or already used verification link")
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="Invalid or already used verification link", tr="Geçersiz veya daha önce kullanılmış doğrulama bağlantısı")
 
     if verification.expires_at < datetime.now(timezone.utc):
         await db.delete(verification)
         await db.commit()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This verification link has expired")
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="This verification link has expired", tr="Bu doğrulama bağlantısının süresi dolmuş")
 
     user_result = await db.execute(select(User).where(User.id == verification.user_id))
     user = user_result.scalar_one()
@@ -149,12 +154,13 @@ async def login(request: Request, payload: LoginRequest, db: AsyncSession = Depe
     user = result.scalar_one_or_none()
 
     if user is None or not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+        raise L10nHTTPException(status_code=status.HTTP_401_UNAUTHORIZED, en="Incorrect email or password", tr="E-posta veya şifre hatalı")
 
     if not user.is_verified:
-        raise HTTPException(
+        raise L10nHTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email before logging in. Check your inbox for the verification link.",
+            en="Please verify your email before logging in. Check your inbox for the verification link.",
+            tr="Giriş yapmadan önce e-postanızı doğrulayın. Gelen kutunuzda doğrulama bağlantısını kontrol edin.",
         )
 
     access_token = create_access_token(subject=str(user.id), role=user.role.value)

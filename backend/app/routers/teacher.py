@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.constants import DEFAULT_PAGE_SIZE
 from app.db.session import get_db
 from app.deps import get_current_teacher
+from app.l10n import L10nHTTPException
 from app.models.announcement import Announcement, AnnouncementRead, announcement_classrooms
 from app.models.classroom import Classroom, classroom_students
 from app.models.grade import Grade
@@ -79,9 +80,10 @@ async def create_classroom(
         )
     )
     if existing.scalar_one_or_none() is not None:
-        raise HTTPException(
+        raise L10nHTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"A classroom named '{name}' already exists. Pick it from the existing classrooms list instead.",
+            en=f"A classroom named '{name}' already exists. Pick it from the existing classrooms list instead.",
+            tr=f"'{name}' adında bir sınıf zaten var. Bunun yerine mevcut sınıflar listesinden seçin.",
         )
 
     classroom = Classroom(teacher_id=teacher.id, name=name)
@@ -130,7 +132,7 @@ async def list_classrooms(
 async def _get_owned_classroom(db: AsyncSession, teacher_id: int, classroom_id: int) -> Classroom:
     classroom = await db.get(Classroom, classroom_id)
     if classroom is None or classroom.teacher_id != teacher_id or classroom.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classroom not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Classroom not found", tr="Sınıf bulunamadı")
     return classroom
 
 
@@ -247,18 +249,18 @@ async def import_classrooms_pdf(
     """
     filename = file.filename or ""
     if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF file.")
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="Please upload a PDF file.", tr="Lütfen bir PDF dosyası yükleyin.")
 
     _MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
     file_bytes = await file.read(_MAX_PDF_BYTES + 1)
     if len(file_bytes) > _MAX_PDF_BYTES:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="PDF must be 20 MB or smaller.")
+        raise L10nHTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, en="PDF must be 20 MB or smaller.", tr="PDF 20 MB veya daha küçük olmalıdır.")
     try:
         pages = await run_in_threadpool(parse_pdf, file_bytes)
     except OcrUnavailableError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise L10nHTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, en=str(exc), tr="Bu sunucuda OCR (Tesseract) kullanılamıyor. Lütfen yönetici ile iletişime geçin.") from exc
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this file as a PDF.") from exc
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="Could not read this file as a PDF.", tr="Bu dosya PDF olarak okunamadı.") from exc
 
     classroom_results: dict[int, PdfImportClassroomResult] = {}
     errors: list[str] = []
@@ -339,19 +341,19 @@ async def preview_classrooms_pdf(
     """
     filename = file.filename or ""
     if not filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please upload a PDF file.")
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="Please upload a PDF file.", tr="Lütfen bir PDF dosyası yükleyin.")
 
     _MAX_PDF_BYTES = 20 * 1024 * 1024
     file_bytes = await file.read(_MAX_PDF_BYTES + 1)
     if len(file_bytes) > _MAX_PDF_BYTES:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="PDF must be 20 MB or smaller.")
+        raise L10nHTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, en="PDF must be 20 MB or smaller.", tr="PDF 20 MB veya daha küçük olmalıdır.")
 
     try:
         pages = await run_in_threadpool(parse_pdf, file_bytes)
     except OcrUnavailableError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise L10nHTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, en=str(exc), tr="Bu sunucuda OCR (Tesseract) kullanılamıyor. Lütfen yönetici ile iletişime geçin.") from exc
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not read this file as a PDF.") from exc
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="Could not read this file as a PDF.", tr="Bu dosya PDF olarak okunamadı.") from exc
 
     all_school_ids = [e.school_id for p in pages if not p.error for e in p.entries]
     existing_ids = await _find_duplicate_school_ids(db, teacher.id, all_school_ids)
@@ -476,7 +478,7 @@ async def delete_student(
         )
     )
     if link.first() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Student not found", tr="Öğrenci bulunamadı")
 
     owned_classroom_ids = select(Classroom.id).where(Classroom.teacher_id == teacher.id)
     await db.execute(
@@ -501,7 +503,7 @@ async def create_announcement(
     db: AsyncSession = Depends(get_db),
 ) -> AnnouncementOut:
     if not payload.classroom_ids:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one target classroom is required")
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="At least one target classroom is required", tr="En az bir hedef sınıf gereklidir")
 
     result = await db.execute(
         select(Classroom).where(
@@ -512,7 +514,7 @@ async def create_announcement(
     )
     classrooms = result.scalars().all()
     if len(classrooms) != len(set(payload.classroom_ids)):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more classrooms are invalid")
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="One or more classrooms are invalid", tr="Bir veya daha fazla sınıf geçersiz")
 
     announcement = Announcement(teacher_id=teacher.id, text=payload.text.strip(), classrooms=classrooms)
     db.add(announcement)
@@ -549,7 +551,7 @@ async def delete_announcement(
     )
     announcement = result.scalar_one_or_none()
     if announcement is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Announcement not found", tr="Duyuru bulunamadı")
     announcement.deleted_at = datetime.now(timezone.utc)
     await db.commit()
 
@@ -576,7 +578,7 @@ async def get_announcement_readers(
         )
     )
     if announcement is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Announcement not found")
+        raise L10nHTTPException(status_code=status.HTTP_404_NOT_FOUND, en="Announcement not found", tr="Duyuru bulunamadı")
 
     read_join = (AnnouncementRead.student_id == StudentProfile.id) & (AnnouncementRead.announcement_id == announcement_id)
 
@@ -679,7 +681,7 @@ async def add_grade(
         )
     )
     if link.first() is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This student is not linked to you")
+        raise L10nHTTPException(status_code=status.HTTP_400_BAD_REQUEST, en="This student is not linked to you", tr="Bu öğrenci size bağlı değil")
 
     classroom_name: str | None = None
     if payload.classroom_id is not None:
@@ -693,9 +695,10 @@ async def add_grade(
             )
         )
         if membership.first() is None:
-            raise HTTPException(
+            raise L10nHTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Student not found in the specified classroom.",
+                en="Student not found in the specified classroom.",
+                tr="Öğrenci belirtilen sınıfta bulunamadı.",
             )
 
     student = await db.get(StudentProfile, payload.student_id)

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import '../locale_notifier.dart';
 import '../navigation.dart';
 import 'session.dart';
 
@@ -26,12 +27,17 @@ class ApiClient {
   static final http.Client _client = http.Client();
 
   static Map<String, String> _headers({bool auth = true}) {
-    final headers = {'Content-Type': 'application/json'};
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept-Language': localeNotifier.value.languageCode,
+    };
     if (auth && Session.token != null) {
       headers['Authorization'] = 'Bearer ${Session.token}';
     }
     return headers;
   }
+
+  static bool get _isTr => localeNotifier.value.languageCode == 'tr';
 
   /// If [auth] is true, a 401 means the session's JWT was rejected (expired
   /// or otherwise invalid) rather than a login attempt with bad credentials,
@@ -44,7 +50,7 @@ class ApiClient {
       try {
         body = jsonDecode(response.body);
       } on FormatException {
-        throw ApiException(response.statusCode, 'Request failed (${response.statusCode})');
+        throw ApiException(response.statusCode, _isTr ? 'İstek başarısız (${response.statusCode})' : 'Request failed (${response.statusCode})');
       }
     }
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -54,7 +60,7 @@ class ApiClient {
       Session.clear();
       navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
     }
-    String message = 'Request failed (${response.statusCode})';
+    String message = _isTr ? 'İstek başarısız (${response.statusCode})' : 'Request failed (${response.statusCode})';
     if (body is Map && body['detail'] != null) {
       message = body['detail'].toString();
     }
@@ -68,7 +74,7 @@ class ApiClient {
     } on http.ClientException catch (e) {
       throw ApiException(0, e.message);
     } on TimeoutException {
-      throw ApiException(0, 'Connection timed out. Check your network.');
+      throw ApiException(0, _isTr ? 'Bağlantı zaman aşımına uğradı. Ağınızı kontrol edin.' : 'Connection timed out. Check your network.');
     }
   }
 
@@ -83,7 +89,7 @@ class ApiClient {
     } on http.ClientException catch (e) {
       throw ApiException(0, e.message);
     } on TimeoutException {
-      throw ApiException(0, 'Connection timed out. Check your network.');
+      throw ApiException(0, _isTr ? 'Bağlantı zaman aşımına uğradı. Ağınızı kontrol edin.' : 'Connection timed out. Check your network.');
     }
   }
 
@@ -94,7 +100,7 @@ class ApiClient {
     } on http.ClientException catch (e) {
       throw ApiException(0, e.message);
     } on TimeoutException {
-      throw ApiException(0, 'Connection timed out. Check your network.');
+      throw ApiException(0, _isTr ? 'Bağlantı zaman aşımına uğradı. Ağınızı kontrol edin.' : 'Connection timed out. Check your network.');
     }
   }
 
@@ -106,6 +112,7 @@ class ApiClient {
     bool auth = true,
   }) async {
     final request = http.MultipartRequest('POST', Uri.parse('$apiBaseUrl$path'));
+    request.headers['Accept-Language'] = localeNotifier.value.languageCode;
     if (auth && Session.token != null) {
       request.headers['Authorization'] = 'Bearer ${Session.token}';
     }

@@ -6,12 +6,14 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.l10n import L10nHTTPException, l10n_exception_handler
 from app.routers import auth, parent, student, teacher
 
 app = FastAPI(title="Student Tracking App API", version="0.1.0")
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(L10nHTTPException, l10n_exception_handler)
 
 _cors_origins = settings.cors_origin_list
 app.add_middleware(
@@ -31,7 +33,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     origin = request.headers.get("origin", "")
     cors_value = "*" if "*" in _cors_origins else (origin if origin in _cors_origins else None)
     headers = {"access-control-allow-origin": cors_value} if cors_value else {}
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"}, headers=headers)
+    lang = request.headers.get("accept-language", "tr")
+    detail = "Sunucu hatası" if lang.startswith("tr") else "Internal server error"
+    return JSONResponse(status_code=500, content={"detail": detail}, headers=headers)
 
 app.include_router(auth.router)
 app.include_router(teacher.router)

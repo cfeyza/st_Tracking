@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
-from fastapi import HTTPException, status
+from fastapi import status
+
+from app.l10n import L10nHTTPException
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,8 +35,10 @@ async def _generate_student_codes(db: AsyncSession, count: int) -> list[str]:
         unique = [c for c in candidates if c not in taken]
         if len(unique) >= count:
             return unique[:count]
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate unique student codes"
+    raise L10nHTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        en="Could not generate unique student codes",
+        tr="Benzersiz öğrenci kodları oluşturulamadı",
     )
 
 
@@ -77,9 +81,10 @@ async def import_roster(
         surname = entry.surname.strip()
 
         if school_id in taken_school_ids:
-            raise HTTPException(
+            raise L10nHTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"A student with school ID '{school_id}' already exists in your roster.",
+                en=f"A student with school ID '{school_id}' already exists in your roster.",
+                tr=f"'{school_id}' okul numaralı öğrenci zaten listenizde mevcut.",
             )
         taken_school_ids.add(school_id)
 
@@ -123,7 +128,7 @@ async def find_and_link_teacher_code(
         )
     )
     if already_linked.first() is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You are already linked to this teacher")
+        raise L10nHTTPException(status_code=status.HTTP_409_CONFLICT, en="You are already linked to this teacher", tr="Bu öğretmenle zaten bağlantı kurulmuş")
 
     candidates = await db.execute(
         select(StudentProfile)
@@ -140,17 +145,19 @@ async def find_and_link_teacher_code(
     matches = candidates.scalars().unique().all()
 
     if not matches:
-        raise HTTPException(
+        raise L10nHTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
+            en=(
                 "No matching student record found for this teacher. "
                 "Ask your teacher to add you to a classroom roster first."
             ),
+            tr="Bu öğretmen için eşleşen öğrenci kaydı bulunamadı. Öğretmeninizden sizi bir sınıf listesine eklemesini isteyin.",
         )
     if len(matches) > 1:
-        raise HTTPException(
+        raise L10nHTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Multiple matching roster records were found for this teacher. Please contact support.",
+            en="Multiple matching roster records were found for this teacher. Please contact support.",
+            tr="Bu öğretmen için birden fazla eşleşen kayıt bulundu. Lütfen destek ile iletişime geçin.",
         )
 
     placeholder = matches[0]

@@ -96,9 +96,6 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.myGrades),
-        backgroundColor: cs.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
       ),
       body: Column(
         children: [

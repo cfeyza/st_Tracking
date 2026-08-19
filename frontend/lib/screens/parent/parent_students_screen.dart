@@ -32,7 +32,6 @@ class _ParentStudentsScreenState extends State<ParentStudentsScreen> {
       backgroundColor: cs.surfaceContainerLowest,
       appBar: AppBar(
         title: Text(l10n.myStudents),
-        backgroundColor: cs.surface,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(context).pushNamed('/parent/add-student-code'),
